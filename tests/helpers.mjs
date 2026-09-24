@@ -4,6 +4,16 @@
    If it is turned back on in config.toml, newAccount() collects the real
    confirmation mail from Mailpit and follows the link, so the suites keep
    working without edits. */
+import { readFileSync, existsSync } from 'node:fs';
+
+// Optional real CNP pair for the live-register test, kept out of the repo.
+if (existsSync(new URL('../.env.test', import.meta.url))) {
+  for (const line of readFileSync(new URL('../.env.test', import.meta.url), 'utf8').split('\n')) {
+    const [k, v] = line.split('=');
+    if (k && v && !process.env[k.trim()]) process.env[k.trim()] = v.trim();
+  }
+}
+
 export const BASE = process.env.VERA_URL || 'http://127.0.0.1:54321';
 export const KEY = process.env.VERA_KEY || 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const MAIL = process.env.VERA_MAIL || 'http://127.0.0.1:54324';

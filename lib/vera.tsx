@@ -56,7 +56,7 @@ type Vera = State & {
   }) => Promise<{ confirmationRequired: boolean }>;
   needsVerification: boolean;
   isMediaDomain: (email: string) => Promise<boolean>;
-  submitVerification: (cnpNumber: string, document: File) => Promise<void>;
+  submitVerification: (cnpNumber: string, cedula: string) => Promise<void>;
   pendingVerifications: () => Promise<PendingVerification[]>;
   decideVerification: (requestId: string, approve: boolean, reason?: string) => Promise<void>;
   documentUrl: (path: string) => Promise<string | null>;
@@ -317,28 +317,28 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         return Boolean(data);
       },
 
-      // The CNP number never reaches the database in the clear, and the cedula
-      // and legal name are never collected at all: a reviewer reads them off
-      // the document, which is destroyed when they decide.
-      submitVerification: (cnpNumber, document) => guard(async () => {
+      // The cedula goes to cnpven.org for the lookup and is never stored. The
+      // CNP number is kept only as a keyed HMAC.
+      submitVerification: (cnpNumber, cedula) => guard(async () => {
         const db = mustHaveDb();
         if (!state.meId) throw new Error("Sign in first.");
-        const extension = document.name.split(".").pop()?.toLowerCase() || "bin";
-        const path = `${state.meId}/id-${Date.now().toString(36)}.${extension}`;
 
-        const upload = await db.storage.from("verification-documents")
-          .upload(path, document, { upsert: true, contentType: document.type });
-        if (upload.error) throw new Error(`Upload failed: ${upload.error.message}`);
-
-        const { error } = await db.functions.invoke("submit-verification", {
-          body: { cnpNumber, documentPath: path },
+        const { data, error } = await db.functions.invoke("submit-verification", {
+          body: { cnpNumber, cedula },
         });
+
         if (error) {
-          await db.storage.from("verification-documents").remove([path]);
-          throw new Error(`Could not submit: ${error.message}`);
+          // the function returns the reason in the body on a 4xx
+          let detail = "";
+          const response = (error as { context?: Response }).context;
+          if (response) {
+            try { detail = (await response.json())?.message ?? ""; } catch { /* ignore */ }
+          }
+          throw new Error(detail || `Could not verify: ${error.message}`);
         }
+
         await load();
-        setNotice("Verification submitted for review");
+        setNotice((data as { message?: string })?.message ?? "Submitted for review");
       }),
 
       pendingVerifications: async () => {

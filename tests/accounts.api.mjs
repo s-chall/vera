@@ -47,36 +47,48 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   const jrProfile = await profileOf(jrToken, jr.user.id);
   check('journalist starts unverified', jrProfile?.verified_at === null, String(jrProfile?.verified_at));
 
-  const docPath = `${jrProfile.id}/id-${Date.now().toString(36)}.png`;
-  const upload = await api(`/storage/v1/object/verification-documents/${docPath}`, {
-    token: jrToken, method: 'POST', contentType: 'image/png',
-    raw: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-  });
-  check('journalist can upload to their own folder', upload.status === 200, upload.status + ' ' + JSON.stringify(upload.data).slice(0, 110));
+  // ---- CNP lookup against the live register
+  const bogus = await api('/functions/v1/submit-verification', {
+    token: jrToken, method: 'POST', body: { cnpNumber: '99999', cedula: 'V00000000' } });
+  check('an invalid pair is refused by the register', bogus.status === 422 && bogus.data?.outcome === 'no_match',
+    bogus.status + ' ' + JSON.stringify(bogus.data).slice(0, 130));
 
-  const foreign = await api(`/storage/v1/object/verification-documents/${orgProfile.id}/stolen.png`, {
-    token: jrToken, method: 'POST', contentType: 'image/png', raw: new Uint8Array([1, 2, 3]) });
-  check('cannot upload into another account\'s folder', foreign.status >= 400, foreign.status);
+  const stillUnverified = await api('/rest/v1/bylines?select=verified_at&id=eq.' + jrProfile.id, { token: jrToken });
+  check('a refused lookup leaves the byline unverified', stillUnverified.data?.[0]?.verified_at === null,
+    JSON.stringify(stillUnverified.data));
 
-  const submit = await api('/functions/v1/submit-verification', {
-    token: jrToken, method: 'POST', body: { cnpNumber: '24165', documentPath: docPath } });
-  check('verification submitted', submit.status === 200, submit.status + ' ' + JSON.stringify(submit.data).slice(0, 130));
+  const malformed = await api('/functions/v1/submit-verification', {
+    token: jrToken, method: 'POST', body: { cnpNumber: '12345', cedula: 'not-a-cedula' } });
+  check('a malformed cédula is rejected before any request', malformed.status === 400, malformed.status);
 
-  const second = await newAccount('journalist');
-  const secondProfile = await profileOf(second.token, second.user.id);
-  const secondDoc = `${secondProfile.id}/id-${Date.now().toString(36)}.png`;
-  await api(`/storage/v1/object/verification-documents/${secondDoc}`, {
-    token: second.token, method: 'POST', contentType: 'image/png',
-    raw: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) });
-  const dupeCnp = await api('/functions/v1/submit-verification', {
-    token: second.token, method: 'POST', body: { cnpNumber: '24165', documentPath: secondDoc } });
-  check('the same CNP cannot be registered twice', dupeCnp.status === 409,
-    dupeCnp.status + ' ' + JSON.stringify(dupeCnp.data).slice(0, 110));
+  const notJournalist = await api('/functions/v1/submit-verification', {
+    token: funder.token, method: 'POST', body: { cnpNumber: '12345', cedula: 'V12345678' } });
+  check('a funder cannot submit CNP verification', notJournalist.status >= 400, notJournalist.status);
+
+  // The real pair lives in .env.test, which is gitignored.
+  const realCnp = process.env.VERA_TEST_CNP;
+  const realCedula = process.env.VERA_TEST_CEDULA;
+  if (realCnp && realCedula) {
+    const second = await newAccount('journalist');
+    const secondProfile = await profileOf(second.token, second.user.id);
+    const good = await api('/functions/v1/submit-verification', {
+      token: second.token, method: 'POST', body: { cnpNumber: realCnp, cedula: realCedula } });
+    check('a real pair verifies against the register', good.status === 200 && good.data?.outcome === 'match',
+      good.status + ' ' + JSON.stringify(good.data).slice(0, 130));
+    const nowVerified = await api('/rest/v1/bylines?select=verified_at&id=eq.' + secondProfile.id, { token: second.token });
+    check('a matched lookup verifies the byline', Boolean(nowVerified.data?.[0]?.verified_at),
+      JSON.stringify(nowVerified.data));
+    check('the affiliate name is never returned to the client',
+      !JSON.stringify(good.data).match(/Nombre|Apellido/i), JSON.stringify(good.data).slice(0, 120));
+  } else {
+    console.log('  (skipping the live match test: set VERA_TEST_CNP and VERA_TEST_CEDULA in .env.test)');
+  }
 
   const mine = await api('/rest/v1/verification_requests?select=*', { token: jrToken });
   check('applicant sees their own request', mine.data?.length === 1, JSON.stringify(mine.data).slice(0, 120));
-  check('no legal name or cedula column exists',
-    mine.data?.[0] && !('legal_name' in mine.data[0]) && !('cedula' in mine.data[0]),
+  check('no cédula or legal name is stored',
+    mine.data?.[0] && !('cedula' in mine.data[0]) && !('legal_name' in mine.data[0])
+      && mine.data[0].document_path === null,
     Object.keys(mine.data?.[0] || {}).join(','));
   check('CNP stored only as a fingerprint',
     typeof mine.data?.[0]?.cnp_fingerprint === 'string' && !mine.data[0].cnp_fingerprint.includes('24165'),
@@ -100,26 +112,28 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   // ---------- admin review
   const admin = await passwordGrant(ADMIN.email, ADMIN.password);
   const adminToken = admin.data.access_token;
+  // With a decisive lookup, nothing waits for a human. The queue only fills
+  // when the register is unreachable or answers in a shape we do not recognise.
   const queue = await api('/rest/v1/rpc/pending_verifications', { token: adminToken, method: 'POST', body: {} });
-  check('admin sees the pending request', queue.data?.some((r) => r.journalist_id === jrProfile.id),
-    JSON.stringify(queue.data).slice(0, 140));
+  check('a decisive lookup leaves nothing for a reviewer',
+    Array.isArray(queue.data) && queue.data.length === 0, JSON.stringify(queue.data).slice(0, 140));
 
-  const adminReadsDoc = await api(`/storage/v1/object/verification-documents/${docPath}`, { token: adminToken });
-  check('admin can read the document while pending', adminReadsDoc.status === 200, adminReadsDoc.status);
+  const rejected = await api('/rest/v1/verification_requests?select=status,lookup_outcome,rejection_reason', { token: jrToken });
+  check('the refused request records why', rejected.data?.[0]?.status === 'rejected'
+    && rejected.data[0].lookup_outcome === 'no_match'
+    && /did not match/i.test(rejected.data[0].rejection_reason || ''),
+    JSON.stringify(rejected.data).slice(0, 160));
 
-  const decide = await api('/functions/v1/review-verification', {
-    token: adminToken, method: 'POST', body: { requestId: mine.data[0].id, approve: true } });
-  check('admin approves', decide.status === 200, decide.status + ' ' + JSON.stringify(decide.data).slice(0, 130));
+  // An admin can still verify by hand, for someone the register cannot settle.
+  const byHand = await api('/rest/v1/rpc/set_verified', {
+    token: adminToken, method: 'POST', body: { target: jrProfile.id, verified: true } });
+  check('admin can still verify by hand', byHand.status === 200, byHand.status + ' ' + JSON.stringify(byHand.data).slice(0, 110));
+  const handChecked = await api('/rest/v1/bylines?select=verified_at&id=eq.' + jrProfile.id, { token: jrToken });
+  check('manual verification shows on the byline', Boolean(handChecked.data?.[0]?.verified_at), JSON.stringify(handChecked.data));
 
-  const after = await api('/rest/v1/verification_requests?select=status,document_path', { token: jrToken });
-  check('request is approved', after.data?.[0]?.status === 'approved', JSON.stringify(after.data));
-  check('document reference is cleared', after.data?.[0]?.document_path === null, JSON.stringify(after.data));
-
-  const docGone = await api(`/storage/v1/object/verification-documents/${docPath}`, { token: adminToken });
-  check('the document itself is deleted', docGone.status >= 400, docGone.status);
-
-  const nowVerified = await api('/rest/v1/bylines?select=verified_at&id=eq.' + jrProfile.id, { token: jrToken });
-  check('journalist is now verified', Boolean(nowVerified.data?.[0]?.verified_at), JSON.stringify(nowVerified.data));
+  const adminWallet = await api('/rest/v1/journalists?select=payout_address&id=eq.' + jrProfile.id, { token: adminToken });
+  check('an admin still cannot read another reporter\'s wallet row',
+    Array.isArray(adminWallet.data) && adminWallet.data.length === 0, JSON.stringify(adminWallet.data).slice(0, 110));
 
   // ---------- visibility follows account type
   const post = await api('/rest/v1/articles', { token: jrToken, method: 'POST', prefer: 'return=representation',

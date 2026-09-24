@@ -1,20 +1,27 @@
 /* Drives the real /signup page in a browser against the local stack, once per
    account type, plus sign-in. */
 import { chromium } from 'playwright';
-import { writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
+
+if (existsSync(new URL('../.env.test', import.meta.url))) {
+  for (const line of readFileSync(new URL('../.env.test', import.meta.url), 'utf8').split('\n')) {
+    const [k, v] = line.split('=');
+    if (k && v && !process.env[k.trim()]) process.env[k.trim()] = v.trim();
+  }
+}
 
 const BASE = process.env.VERA_APP || 'http://localhost:3000';
 const results = [];
 const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String(e ?? '')]);
 const uniq = (p) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 999)}`;
 
-// a tiny real PNG for the identity document upload
-const DOC = join(tmpdir(), 'vera-id.png');
-writeFileSync(DOC, Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64'));
+
+const finish = () => {
+  console.log(results.map((r) => r[0].padEnd(5) + r[1] + (r[2] ? '\n       ' + r[2] : '')).join('\n'));
+  const failed = results.filter((r) => r[0] === 'FAIL').length;
+  console.log('\n' + (results.length - failed) + '/' + results.length + ' passed');
+  process.exit(failed ? 1 : 0);
+};
 
 (async () => {
   const browser = await chromium.launch();
@@ -82,16 +89,37 @@ writeFileSync(DOC, Buffer.from(
     // verification rather than through a dead-end confirmation screen.
     await page.waitForSelector('#cnp', { timeout: 30000 });
     check('journalist is prompted to verify right after signup', await page.isVisible('#cnp'));
-    check('prompt says the document is deleted',
-      (await page.textContent('.auth-card'))?.includes('deletes your document'), '');
-    check('prompt says the cedula is not stored',
-      (await page.textContent('.auth-card'))?.toLowerCase().includes('cédula'), '');
+    check('prompt asks for a cédula, not a document',
+      (await page.isVisible('#cedula')) && (await page.locator('input[type=file]').count()) === 0);
+    check('prompt says the cédula is not stored',
+      (await page.textContent('.auth-card'))?.includes('never stored'), '');
     check('verification can be skipped', await page.isVisible('.auth-alt button'));
 
-    // a unique number per run, so repeated runs without a reset still work
-    const cnp = String(20000 + Math.floor(Math.random() * 8000));
-    await page.fill('#cnp', cnp);
-    await page.setInputFiles('.signup-upload input[type=file]', DOC);
+    await page.fill('#cnp', '12345');
+    await page.fill('#cedula', 'nonsense');
+    await page.click('.auth-submit');
+    await page.waitForTimeout(600);
+    check('a malformed cédula is caught before any request',
+      (await page.textContent('.auth-message'))?.includes('V12345678'), await page.textContent('.auth-message'));
+
+    // a pair the register will not recognise
+    await page.fill('#cnp', '99999');
+    await page.fill('#cedula', 'V00000000');
+    await page.click('.auth-submit');
+    await page.waitForTimeout(6000);
+    check('the register refuses an unknown pair',
+      (await page.textContent('.auth-message'))?.includes('do not match'), await page.textContent('.auth-message'));
+    check('still prompted after a refusal', await page.isVisible('#cnp'));
+
+    const realCnp = process.env.VERA_TEST_CNP;
+    const realCedula = process.env.VERA_TEST_CEDULA;
+    if (!realCnp || !realCedula) {
+      console.log('  (skipping the live match: set VERA_TEST_CNP and VERA_TEST_CEDULA in .env.test)');
+      await context.close();
+      return finish();
+    }
+    await page.fill('#cnp', realCnp);
+    await page.fill('#cedula', realCedula);
     await page.click('.auth-submit');
     // the prompt clears once the request is recorded
     await page.waitForSelector('#cnp', { state: 'detached', timeout: 30000 });

@@ -62,9 +62,8 @@ To make one on a hosted project, sign up normally and set `is_admin` with
 
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
-- **Journalist** — two steps, then you are asked for a CNP number and an
-  identity document straight after signing in. Any image or PDF works locally,
-  and the prompt is skippable.
+- **Journalist** — two steps, then a CNP number and cédula are checked live
+  against cnpven.org straight after signing in. The prompt is skippable.
 - **Media organisation** — needs an email at an allowlisted outlet. Try
   `you@nytimes.com`. A `@gmail.com` address is rejected as you type, and again
   in the signup trigger so the check cannot be skipped from the client.
@@ -166,28 +165,45 @@ gate cannot be bypassed by calling the API directly.
 
 ### Journalist verification
 
-The CNP number is a Colegio Nacional de Periodistas (Venezuela) registration,
-checked at cnpven.org against the holder's cédula. That site has no API, so a
-human does the check.
+The CNP number is a Colegio Nacional de Periodistas (Venezuela) registration.
+Verification submits the same form a person would fill in at
+https://cnpven.org/formulario-de-afiliados/ and reads the answer:
 
-The system deliberately never collects the cédula or the legal name, and does
-not keep the document:
+| Response | Outcome |
+|---|---|
+| "no coincide con un afiliado" | rejected, with the reason recorded |
+| `Carnet CNP: <the same number>` | approved, byline verified |
+| anything else, or the site is unreachable | inconclusive, queued for a reviewer |
 
-1. The applicant uploads to a private bucket, under their own folder.
-2. `submit-verification` HMACs the CNP number with a key held only in that
-   function's secrets. The CNP space is roughly 28,000, so an unkeyed hash
-   would be brute-forced immediately.
-3. A reviewer reads the document and runs the cnpven.org lookup **from their own
-   machine**. Doing it server-side would tell CNP which pseudonyms are
-   registering with Vera.
-4. `review-verification` **deletes the document first** and records the outcome
-   only if that succeeded, so no path approves someone and leaves their ID
-   behind.
+It fails closed: an unrecognised answer is never an automatic pass. The match
+check requires the register to echo back the number we asked about, so a cached
+or unrelated page cannot be read as a success.
 
-What survives: verified or not, who decided, when.
+**What is stored:** the outcome, and the CNP number as a keyed HMAC for
+duplicate detection. The key lives only in the edge function's secrets; the CNP
+space is roughly 28,000, so an unkeyed hash would be brute-forced instantly.
 
-Supabase blocks deleting from `storage.objects` in SQL, which is why deletion
-lives in an edge function. `decide_verification` is not callable by a client.
+**What is not stored:** the cédula, at all. It is used for the request and
+discarded. A successful lookup also returns the affiliate's real name, which is
+never stored, logged, or returned to the browser.
+
+An admin can still verify by hand through `set_verified()` for anyone the
+register cannot settle.
+
+**The cost, stated plainly:** this sends a cédula to cnpven.org from the server,
+so their logs learn which cédulas are registering with Vera. That is a real
+disclosure in Venezuela. The alternative is a reviewer running the lookup from
+their own machine, which leaks to CNP either way but not in a pattern tied to
+your infrastructure.
+
+To run the live-match test, put a real pair in `.env.test` (gitignored):
+
+```
+VERA_TEST_CNP=
+VERA_TEST_CEDULA=
+```
+
+Both suites skip that check when it is absent. Do not commit a real cédula.
 
 ### Article visibility
 
