@@ -203,6 +203,56 @@ const finish = () => {
     await context.close();
   }
 
+  // ------------------------------------------------- errors read as errors
+  {
+    const { context, page } = await fresh();
+    const RED = 'rgb(193, 39, 29)';
+    const GREEN = 'rgb(23, 107, 80)';
+    const colour = (sel) => page.$eval(sel, (el) => getComputedStyle(el).color);
+
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#email', { timeout: 15000 });
+    await page.click('.auth-submit');
+    await page.waitForSelector('.auth-message', { timeout: 8000 });
+    check('sign-in validation error is red', (await colour('.auth-message')) === RED, await colour('.auth-message'));
+
+    await page.fill('#email', 'journalist@vera.test');
+    await page.fill('#password', 'definitely-wrong');
+    await page.click('.auth-submit');
+    await page.waitForTimeout(3000);
+    check('a rejected sign-in is red', (await colour('.auth-message')) === RED, await colour('.auth-message'));
+
+    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.signup-role-grid', { timeout: 15000 });
+    await page.locator('.signup-role-grid button').nth(1).click();
+    await page.fill('input[type=email]', 'someone@gmail.com');
+    await page.waitForTimeout(1600);
+    check('an unrecognised outlet is red', (await colour('.signup-bad')) === RED, await colour('.signup-bad'));
+    await page.fill('input[type=email]', 'desk@nytimes.com');
+    await page.waitForTimeout(1600);
+    check('a recognised outlet is green', (await colour('.signup-ok')) === GREEN, await colour('.signup-ok'));
+
+    await page.fill('input[type=password]', 'a-long-enough-password');
+    await page.fill('input[type=email]', 'someone@gmail.com');
+    await page.waitForTimeout(1200);
+    await page.click('.signup-next');
+    await page.waitForTimeout(1200);
+    check('a refused signup is red', (await colour('.signup-message')) === RED, await colour('.signup-message'));
+
+    // and a success is not red
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#email', { timeout: 15000 });
+    await page.fill('#email', 'funder@vera.test');
+    await page.fill('#password', 'vera-demo-2026');
+    await page.click('.auth-submit');
+    await page.waitForSelector('.site-header', { timeout: 25000 });
+    await page.goto(BASE + '/profile', { waitUntil: 'networkidle' });
+    await page.click('.journalist-settings');
+    await page.waitForSelector('.auth-message', { timeout: 15000 });
+    check('a success message is green, not red', (await colour('.auth-message')) === GREEN, await colour('.auth-message'));
+    await context.close();
+  }
+
   // ---------------------------------------------------------- profile page
   for (const [email, alias, type, hasArticles] of [
     ['journalist@vera.test', 'Ash Meridian', 'Journalist', true],

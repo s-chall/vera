@@ -867,8 +867,10 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 
 /* ---------- signup: roles, verification, privacy notes ---------- */
 .signup-role-blurb { margin: 0 0 20px; color: var(--ink-soft); font-size: .85rem; line-height: 1.5; }
-.signup-ok { color: var(--green); font-weight: 600; }
-.signup-bad { color: var(--orange-dark); font-weight: 600; }
+/* these sit inside .signup-field > small, which is more specific than a bare
+   class, so they have to match that shape to win */
+.signup-field > small.signup-ok { color: var(--green); font-weight: 600; }
+.signup-field > small.signup-bad { color: var(--danger); font-weight: 600; }
 .signup-suggest { margin: -8px 0 20px; border: 0; background: none; color: var(--blue); font-size: .82rem; font-weight: 700; }
 .signup-privacy { margin: 18px 0 0; display: flex; gap: 9px; align-items: flex-start; color: var(--ink-soft); font-size: .8rem; line-height: 1.5; }
 .signup-privacy svg { flex: 0 0 auto; color: var(--green); }
@@ -885,3 +887,31 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .journalist-unverified { color: var(--orange-dark); }
 .journalist-photo-placeholder.identity-seal { display: grid; place-items: center; color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
 .profile-email { font-size: .95rem; word-break: break-all; }
+
+/* ---------- notices: failures read as failures ---------- */
+:root { --danger: #c1271d; --danger-soft: #fdeceb; }
+
+.form-message.is-error,
+.auth-message.is-error,
+.signup-message.is-error {
+  padding: 10px 12px;
+  border-left: 3px solid var(--danger);
+  border-radius: 4px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.form-message.is-success,
+.auth-message.is-success,
+.signup-message.is-success {
+  padding: 10px 12px;
+  border-left: 3px solid var(--green);
+  border-radius: 4px;
+  background: #e8f4ee;
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* the refused-verification badge is a failure too */
+.auth-badge-warn { color: var(--danger); background: var(--danger-soft); }

@@ -90,7 +90,7 @@ export function VerificationPrompt() {
           and your cédula is not stored at all.</p>
 
         {signOut}
-        {vera.notice ? <p className="form-message auth-message" role="status">{vera.notice}</p> : null}
+        {vera.notice ? <p className={`form-message auth-message is-${vera.noticeTone}`} role="status">{vera.notice}</p> : null}
       </section>
     </main>
   );

@@ -44,6 +44,7 @@ type Vera = State & {
   me: Byline | null;
   isAdmin: boolean;
   notice: string | null;
+  noticeTone: "error" | "success";
   busy: boolean;
   suggestAlias: () => string;
   byId: (id: string) => Byline | null;
@@ -68,7 +69,7 @@ type Vera = State & {
   toggleFollow: (id: string) => Promise<void>;
   publish: (input: { title: string; body: string }) => Promise<Article | null>;
   unpublish: (id: string) => Promise<void>;
-  say: (message: string | null) => void;
+  say: (message: string | null, tone?: "error" | "success") => void;
 };
 
 const VeraContext = createContext<Vera | null>(null);
@@ -92,8 +93,17 @@ type StatRow = { journalist_id: string; followers: number; articles: number };
 
 export function VeraProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(EMPTY);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNoticeText] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<"error" | "success">("error");
   const [busy, setBusy] = useState(false);
+
+  // Anything that goes wrong is an error; successes have to say so explicitly.
+  // Defaulting this way means a new failure path can never render as reassuring
+  // green text.
+  const setNotice = useCallback((message: string | null, tone: "error" | "success" = "error") => {
+    setNoticeText(message);
+    setNoticeTone(tone);
+  }, []);
 
   const load = useCallback(async () => {
     const db = supabase();
@@ -218,7 +228,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
     try {
       await work();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : String(error));
+      setNotice(error instanceof Error ? error.message : String(error), "error");
     } finally {
       setBusy(false);
     }
@@ -248,6 +258,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       ...state,
       me,
       isAdmin: state.isAdmin,
+      noticeTone,
       // Verification is mandatory, so a pending or rejected journalist is held
       // just as firmly as one who has not submitted anything.
       needsVerification: state.accountType === "journalist" && !me?.verified,
@@ -313,7 +324,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           throw new Error(`Account made, but the alias did not stick: ${profileError.message}`);
         }
         await load();
-        setNotice(`Welcome, ${alias}`);
+        setNotice(`Welcome, ${alias}`, "success");
         return { confirmationRequired: false };
       },
 
@@ -348,7 +359,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         }
 
         await load();
-        setNotice((data as { message?: string })?.message ?? "Submitted for review");
+        setNotice((data as { message?: string })?.message ?? "Submitted for review", "success");
       }),
 
       pendingVerifications: async () => {
@@ -374,7 +385,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         });
         if (error) throw new Error(error.message);
         await load();
-        setNotice(approve ? "Verified" : "Rejected");
+        setNotice(approve ? "Verified" : "Rejected", "success");
       }),
 
       documentUrl: async (path) => {
@@ -396,7 +407,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         const { error } = await db.auth.signOut();
         if (error) throw new Error(error.message);
         await load();
-        setNotice("Signed out");
+        setNotice("Signed out", "success");
       }),
 
       setVerified: (journalistId, verified) => guard(async () => {
@@ -404,7 +415,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         const { error } = await db.rpc("set_verified", { target: journalistId, verified });
         if (error) throw new Error(`Could not change verification: ${error.message}`);
         await load();
-        setNotice(verified ? "Marked verified" : "Verification removed");
+        setNotice(verified ? "Marked verified" : "Verification removed", "success");
       }),
 
       toggleFollow: (id) => guard(async () => {
@@ -463,10 +474,10 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         const { error } = await db.from("articles").delete().eq("id", id);
         if (error) throw new Error(`Unpublishing failed: ${error.message}`);
         await load();
-        setNotice("Article unpublished");
+        setNotice("Article unpublished", "success");
       }),
     };
-  }, [state, notice, busy, guard, load]);
+  }, [state, notice, noticeTone, setNotice, busy, guard, load]);
 
   return <VeraContext.Provider value={value}>{children}</VeraContext.Provider>;
 }

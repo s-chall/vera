@@ -42,8 +42,8 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
       <section className="auth-card">
         <span className="wordmark auth-wordmark">Vera<span aria-hidden="true">.</span></span>
         <span className="overline">Sign in</span>
-        <h1>Welcome back.</h1>
-        <p>Vera is closed. Reporting is visible only to people with an account.</p>
+        <h1>Welcome</h1>
+        <p>Reporting is visible only to people with an account.</p>
 
         <label className="auth-field" htmlFor="email">Email</label>
         <input id="email" type="email" value={email} autoComplete="email" spellCheck={false}
@@ -65,7 +65,7 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
         </button>
 
         <p className="auth-alt">No account? <Link href="/signup">Create one</Link></p>
-        {vera.notice ? <p className="form-message auth-message" role="status">{vera.notice}</p> : null}
+        {vera.notice ? <p className={`form-message auth-message is-${vera.noticeTone}`} role="status">{vera.notice}</p> : null}
       </section>
     </main>
   );

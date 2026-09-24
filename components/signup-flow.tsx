@@ -215,7 +215,7 @@ export function SignupFlow() {
             </div>
           </form>
 
-          {vera.notice ? <p className="form-message signup-message" role="status">{vera.notice}</p> : null}
+          {vera.notice ? <p className={`form-message signup-message is-${vera.noticeTone}`} role="status">{vera.notice}</p> : null}
         </div>
       </section>
     </main>
