@@ -48,11 +48,17 @@ its root. That is correct; it only serves `/rest/v1/…`, `/auth/v1/…` and
 Vera is closed. There is no anonymous browsing, so you need an account before
 you see anything.
 
-**A seeded admin exists:**
+**A seeded admin exists locally:**
 
 ```
 admin@vera.test / vera-admin-2026
 ```
+
+That account comes from `supabase/seed-local-admin.sql`, which runs only because
+`config.toml` lists it under `[db.seed] sql_paths`. A hosted project never reads
+`config.toml`, so deploying this repository creates no administrator anywhere.
+To make one on a hosted project, sign up normally and set `is_admin` with
+`service_role`.
 
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
@@ -131,7 +137,8 @@ lib/vera.tsx             session, data loading, auth, publishing
 lib/supabase.ts          browser client
 supabase/migrations/     payout engine first, then identity, accounts, visibility
 supabase/functions/      submit-verification, review-verification, finalize-payout
-supabase/seed.sql        reporters, articles, media domains, admin account
+supabase/seed.sql        reporters, articles, media domains
+supabase/seed-local-admin.sql  the test admin, local only
 tests/                   API and browser suites
 ```
 
@@ -197,7 +204,8 @@ Then:
   Losing that key loses duplicate detection on CNP numbers.
 - Set up custom SMTP. The shared Supabase sender is rate limited and not meant
   for production.
-- Change the admin password in `seed.sql`, or don't seed that account at all.
+- No admin is created for you. `seed-local-admin.sql` is local-only; promote a
+  real account with `service_role` instead.
 
 ---
 
