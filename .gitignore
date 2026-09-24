@@ -5,3 +5,7 @@ node_modules/
 *.log
 *.tsbuildinfo
 .DS_Store
+signet/*.wif
+signet/pool.key.json
+bitcoin/*.wif
+bitcoin/pool.key.json

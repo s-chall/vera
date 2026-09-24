@@ -1,0 +1,11 @@
+{
+  "network": "signet",
+  "address": "tb1qp6vfdapdwdd9s44tr04thdp9c48ctwqm3n8cws",
+  "scriptType": "wpkh",
+  "createdAt": "2026-09-24T20:53:21.748Z",
+  "explorerUrl": "https://mempool.space/signet/address/tb1qp6vfdapdwdd9s44tr04thdp9c48ctwqm3n8cws",
+  "faucetHint": "https://signet257.bublina.eu.org/",
+  "watch": {
+    "mempoolApi": "https://mempool.space/signet/api/address/tb1qp6vfdapdwdd9s44tr04thdp9c48ctwqm3n8cws"
+  }
+}
