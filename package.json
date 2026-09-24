@@ -9,7 +9,8 @@
     "lint": "tsc --noEmit",
     "test:signup": "node tests/signup.api.mjs",
     "test:ui": "node tests/signup.ui.mjs",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "test:accounts": "node tests/accounts.api.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.2.8",

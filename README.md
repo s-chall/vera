@@ -1,137 +1,228 @@
 # Vera
 
 Reader-funded reporting with protected journalist identities. Next.js front end,
-Supabase for identity and content, and a payout engine that distributes a shared
+Supabase for accounts and content, and a payout engine that distributes a shared
 pool by qualified readership.
 
-## Running it locally
+---
 
-Needs Docker running.
+## Run it
 
-```
+You need **Docker running** and Node 20+. Everything else is local; nothing
+touches a hosted project.
+
+```bash
 npm install
-npx supabase start          # Postgres, auth, PostgREST, Studio
+npx supabase start     # Postgres, auth, PostgREST, storage, Studio
 npm run dev
 ```
 
-`supabase start` applies both migrations and `supabase/seed.sql`, so you get the
-four reporters and their reporting with nothing else to do. It prints the local
-URL and publishable key; put them in `.env.local` (see `.env.example`). Anonymous
-sign-ins and a raised signup rate limit are already set in `supabase/config.toml`.
+Open **http://localhost:3000**.
 
-`npm run db:reset` replays every migration and the seed from scratch. Use it
-freely, the local database holds nothing you need.
+If you don't have a `.env.local` yet:
 
-## Tests
-
-```
-npm run test:signup   # 30 checks, API level, against the local stack
-npm run test:ui       # 41 checks, real browser, needs npm run dev
+```bash
+cp .env.example .env.local
 ```
 
-`test:ui` expects a freshly reset database, since it asserts on the seeded feed.
-Run `npm run db:reset` first.
+It already points at the local stack. The key in it is the standard local
+development key, identical on every machine and not a secret.
 
-## Deploying the schema to a hosted project
+### Other local URLs
 
-Order matters. The payout engine owns `journalists` and `articles`; the identity
-migration extends both. `supabase db push` handles it once the project is
-linked. By hand, `supabase/setup.sql` concatenates everything in order, or run
-these individually:
+| | |
+|---|---|
+| App | http://localhost:3000 |
+| Supabase Studio (browse tables) | http://127.0.0.1:54323 |
+| Mailpit (any email the app sends) | http://127.0.0.1:54324 |
+| API gateway | http://127.0.0.1:54321 |
 
-1. `supabase/reset-legacy-prototype.sql` — **only if** the project still holds
-   the old vanilla prototype schema (`profiles`, `pools`, `pledges`). It is
-   destructive and deletes every account. Skip it on a fresh project.
-2. `supabase/migrations/202609240001_payout_engine.sql`
-3. `supabase/migrations/202609240002_identity_and_content.sql`
-4. `supabase/migrations/202609240003_require_accounts.sql`
-5. `supabase/seed.sql`
+The API gateway returns `{"message":"no Route matched with those values"}` at
+its root. That is correct; it only serves `/rest/v1/…`, `/auth/v1/…` and
+`/functions/v1/…`.
 
-Then make sure **Anonymous sign-ins** is **off** under Authentication > Sign In /
-Providers, and set up custom SMTP if you want email confirmation on. With
-confirmations enabled, signup returns no session and the screen tells the user to
-confirm before signing in.
+---
 
-## Accounts
+## Sign in
 
-Vera is closed. Nothing is readable without an account, and an account means an
-email and a password. Anonymous sessions are refused at three levels: disabled
-in `config.toml`, disabled in the hosted dashboard, and `handle_new_user()`
-refuses to mint a byline for a user with no email even if the first two are
-flipped back on.
+Vera is closed. There is no anonymous browsing, so you need an account before
+you see anything.
 
-Signup is one screen: email, password, and the public alias readers will see.
-The email signs you in and appears nowhere else. A trigger mints the byline and
-the alias is applied in the same step.
-
-There are two kinds of account. An ordinary one can read, follow and publish.
-An admin can additionally verify reporters.
-
-### The test admin
+**A seeded admin exists:**
 
 ```
 admin@vera.test / vera-admin-2026
 ```
 
-Seeded by `supabase/seed.sql` as the byline **Vera Desk**. Local and staging
-only; change the password before this reaches anything real.
+Or create your own at **http://localhost:3000/signup**. Three account types:
 
-An admin's only extra power is verification, deliberately. It is granted through
-`set_verified()` rather than an RLS policy, because an UPDATE has to read the row
-first, so an admin update policy would require SELECT on `journalists` and hand
-every admin every reporter's `payout_address`. The function exposes exactly one
-capability and nothing else. `is_admin` itself cannot be set through the API at
-all, by anyone, including admins.
+- **Journalist** — three steps, ending in CNP number plus an identity document.
+  Any image or PDF works locally.
+- **Media organisation** — needs an email at an allowlisted outlet. Try
+  `you@nytimes.com`. A `@gmail.com` address is rejected as you type.
+- **Funder** — creates an account that stays inactive, because there is no
+  payment rail yet.
 
-## Privacy properties, and their limit
+---
 
-Enforced in Postgres, not in the UI:
+## Reset the database
 
-- `journalists` is read-own. Bylines reach the client through the `bylines`
-  view, which exposes the alias, seal and bio but never `payout_address`,
-  `owner_user_id` or `payouts_enabled`.
-- `follows` is readable only by the follower. A reporter cannot query who
-  follows them. Counts come from `follower_count()`, a definer function.
-- `verified_at` is null on every account created through signup, and the shield
-  only renders when it is set. `protect_journalist_fields()` rejects any change
-  to it except from `service_role` or an admin, and pins `owner_user_id` so a row
-  cannot be handed to another account. That trigger is SECURITY INVOKER
-  deliberately: it reads `current_user`, which under DEFINER would be the owner
-  and would pass for everyone.
-- Nothing is readable by the `anon` key. Articles, bylines, the payout ledger
-  and every helper function require an authenticated session.
-- A journalist cannot publish under another byline or delete another's work.
+```bash
+npm run db:reset
+```
 
-The limit: `auth.users` and `journalists` live in the same Supabase instance, so
-the provider can join a legal identity to a pseudonym. Everything above protects
-users from each other, not from Supabase, a breach, or a subpoena. For this
-product that gap is the substantive one, and no RLS policy closes it.
+Replays every migration and `supabase/seed.sql` from scratch: four reporters,
+their articles, the media-domain allowlist, and the admin account. Use it
+freely, there is nothing in the local database worth keeping.
 
-## What is still mock
+**Edge functions are not reloaded by a reset.** After editing one:
 
-- **Payouts.** No epoch has run. The pool balance, the ledger rows and every BTC
-  figure come from `lib/content.ts`. See `BACKEND.md` for the engine.
-- **The wallet.** No payout address is attached to any account. `payout_address`
-  is nullable precisely because signup happens long before anyone has one.
-- **Verification.** There is no review process. The four seeded reporters carry
-  the badge because `seed.sql` sets it. It means "seeded by us", not "checked".
-- Likes, comments, search, bookmarks and image upload are inert controls.
+```bash
+docker restart supabase_edge_runtime_vera
+```
 
-## Known inconsistency
+Otherwise the old code keeps serving, which looks exactly like your change
+having no effect.
 
-`journalists.payout_address` validates an Ethereum address
-(`^0x[0-9a-fA-F]{40}$`) while the entire interface is denominated in BTC and the
-funding dialog says Lightning. One of the two is wrong and it should be settled
-before a payout is ever submitted.
+---
 
-## Layout
+## Tests
+
+```bash
+npm run db:reset && npm run test:signup     # 30 checks, access control
+npm run db:reset && npm run test:accounts   # 36 checks, account types and verification
+npm run db:reset && npm run test:ui         # 25 checks, real browser, needs npm run dev
+```
+
+Each asserts on the seeded state, so reset between them. `test:ui` drives
+Chromium through all three signup flows and needs the dev server already
+running.
+
+---
+
+## Troubleshooting
+
+**"Could not start" on a dark screen.** The app can't reach Supabase. Check
+`npx supabase status`, and that `.env.local` points at `127.0.0.1:54321`.
+
+**Signup fails with "Anonymous sign-ins are disabled".** Expected, and not your
+problem: the app uses email and password. If you see it, something is calling
+the old anonymous path.
+
+**"Too many sign-ups from this network."** The local rate limit is 500/hour
+(`anonymous_users` in `supabase/config.toml`). A hosted project defaults to 30.
+
+**Port already in use.** `npx supabase stop` then `npx supabase start`.
+
+**`supabase start` hangs on a first run.** It is pulling several GB of images.
+
+---
+
+## How it fits together
+
+The browser talks to Supabase directly. There is no API server of your own,
+which means **Postgres is the entire access-control system**. A policy mistake
+is a breach, not a bug.
 
 ```
-app/                     routes: briefing, article, fund, write, profile
-components/              header, signup gate, status badge, fund dialog
-lib/vera.tsx             session, data loading, auth and publishing actions
+app/                     routes: news, article, fund, write, profile, signup
+components/              feed, editor, profile, fund, signup flow, sign-in gate
+lib/vera.tsx             session, data loading, auth, publishing
 lib/supabase.ts          browser client
-lib/content.ts           mock payout data only
-supabase/migrations/     payout engine, then identity and content
-supabase/seed.sql        four reporters and their reporting
+supabase/migrations/     payout engine first, then identity, accounts, visibility
+supabase/functions/      submit-verification, review-verification, finalize-payout
+supabase/seed.sql        reporters, articles, media domains, admin account
+tests/                   API and browser suites
 ```
+
+### Accounts
+
+`account_type` is set at signup and cannot be changed afterwards, along with
+`is_admin` and `funding_confirmed_at`. All three are blocked in
+`protect_journalist_fields`.
+
+Media organisation domains are checked **inside the signup trigger**, so the
+gate cannot be bypassed by calling the API directly.
+
+### Journalist verification
+
+The CNP number is a Colegio Nacional de Periodistas (Venezuela) registration,
+checked at cnpven.org against the holder's cédula. That site has no API, so a
+human does the check.
+
+The system deliberately never collects the cédula or the legal name, and does
+not keep the document:
+
+1. The applicant uploads to a private bucket, under their own folder.
+2. `submit-verification` HMACs the CNP number with a key held only in that
+   function's secrets. The CNP space is roughly 28,000, so an unkeyed hash
+   would be brute-forced immediately.
+3. A reviewer reads the document and runs the cnpven.org lookup **from their own
+   machine**. Doing it server-side would tell CNP which pseudonyms are
+   registering with Vera.
+4. `review-verification` **deletes the document first** and records the outcome
+   only if that succeeded, so no path approves someone and leaves their ID
+   behind.
+
+What survives: verified or not, who decided, when.
+
+Supabase blocks deleting from `storage.objects` in SQL, which is why deletion
+lives in an edge function. `decide_verification` is not callable by a client.
+
+### Article visibility
+
+Journalist-authored work defaults to `media_only`; everything else is `members`.
+Media organisations and admins read everything.
+
+**A funder currently sees an empty feed**, because every seeded reporter is a
+journalist. There is a test pinning that so it can't drift. If funders should
+read the reporting they fund, change the policy in
+`202609240006_article_visibility.sql`.
+
+---
+
+## Deploying to a hosted project
+
+`supabase link` then `supabase db push` handles migrations. By hand, run them in
+filename order, then `supabase/seed.sql`.
+
+If the project still holds the original vanilla prototype schema (`profiles`,
+`pools`, `pledges`), run `supabase/reset-legacy-prototype.sql` first. It is
+destructive and deletes every account.
+
+Then:
+
+- Turn **Anonymous sign-ins off** under Authentication > Sign In / Providers.
+- Deploy both edge functions and set `VERA_CNP_HMAC_KEY` in their secrets.
+  Losing that key loses duplicate detection on CNP numbers.
+- Set up custom SMTP. The shared Supabase sender is rate limited and not meant
+  for production.
+- Change the admin password in `seed.sql`, or don't seed that account at all.
+
+---
+
+## What is not built
+
+Being explicit, because several screens imply otherwise.
+
+- **Payments.** No pool, no contract, no adapter, no on-ramp. Every BTC figure
+  and ledger row on the Fund page comes from `lib/content.ts`.
+- **Engagement recording.** `engagement_events` has no writer, so the payout
+  engine would distribute nothing. Like and comment buttons are inert.
+- **The admin review UI.** The backend is built and tested, but the profile page
+  is upstream's and still shows fixture data, so there is no screen for
+  reviewing verification requests yet.
+- **The feed, editor, profile and fund pages** are upstream components not yet
+  connected to the database.
+- Search, bookmarks and image upload.
+
+### Two known contradictions
+
+`journalists.payout_address` only accepts an Ethereum address and the payout
+adapter deals in a stablecoin with `0x` transaction hashes, while the Fund page
+is denominated in BTC and mentions Lightning. Base was chosen, so the UI copy is
+the part that's wrong.
+
+`epoch_allocations` is readable by any member and holds both `journalist_id` and
+`payout_address`. Joining it to `bylines` links a pseudonym to a wallet. Nothing
+has settled yet so nothing has leaked, but this ships the day payouts do.

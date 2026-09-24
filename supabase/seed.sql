@@ -120,3 +120,22 @@ update public.journalists j
  where u.email = 'admin@vera.test'
    and j.owner_user_id = u.id
    and j.public_alias <> 'Vera Desk';
+
+-- ------------------------------------------------------- media organisations
+-- Domains allowed to open a media_org account. Extend as needed.
+
+insert into public.media_domains (domain, name) values
+  ('nytimes.com',        'The New York Times'),
+  ('washingtonpost.com', 'The Washington Post'),
+  ('theguardian.com',    'The Guardian'),
+  ('reuters.com',        'Reuters'),
+  ('apnews.com',         'Associated Press'),
+  ('bbc.co.uk',          'BBC News'),
+  ('elpais.com',         'El País'),
+  ('efecto-cocuyo.com',  'Efecto Cocuyo'),
+  ('armando.info',       'Armando.info'),
+  ('elpitazo.net',       'El Pitazo'),
+  ('runrun.es',          'Runrun.es'),
+  ('talcualdigital.com', 'TalCual'),
+  ('vera.test',          'Vera (testing)')
+on conflict (domain) do nothing;

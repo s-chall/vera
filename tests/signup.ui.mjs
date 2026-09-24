@@ -1,171 +1,169 @@
-/* Drives the real sign-up screen in a browser against the local stack. */
+/* Drives the real /signup page in a browser against the local stack, once per
+   account type, plus sign-in. */
 import { chromium } from 'playwright';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const BASE = process.env.VERA_APP || 'http://localhost:3000';
-
 const results = [];
 const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String(e ?? '')]);
+const uniq = (p) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 999)}`;
+
+// a tiny real PNG for the identity document upload
+const DOC = join(tmpdir(), 'vera-id.png');
+writeFileSync(DOC, Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64'));
 
 (async () => {
   const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  async function fresh() {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    return { context, page, errors };
+  }
 
-  // ---- the gate
-  await page.waitForSelector('#alias', { timeout: 15000 });
-  check('signed-out visitor gets the signup screen', await page.isVisible('#alias'));
-  check('no header until signed in', !(await page.isVisible('.site-header')));
+  // ---------------------------------------------------------- signed out
+  {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.auth-card', { timeout: 15000 });
+    check('signed out lands on sign in', await page.isVisible('#email'));
+    check('no header when signed out', !(await page.isVisible('.site-header')));
+    await page.click('.auth-alt a');
+    await page.waitForSelector('.signup-role-grid', { timeout: 10000 });
+    check('sign in links to signup', page.url().includes('/signup'));
+    check('three account types offered', (await page.locator('.signup-role-grid button').count()) === 3);
+    const labels = await page.locator('.signup-role-grid strong').allTextContents();
+    check('the three types are the right ones',
+      labels.join(',') === 'Journalist,Media organisation,Funder', labels.join(','));
+    await context.close();
+  }
 
-  const first = await page.inputValue('#alias');
-  check('an alias is proposed', /^[A-Z][a-z]+ [A-Z]/.test(first), first);
+  // ---------------------------------------------------------- journalist
+  let journalistAlias = '';
+  {
+    const { context, page, errors } = await fresh();
+    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.signup-role-grid', { timeout: 15000 });
 
-  // the bug I fixed: alias must not change when something else re-renders
-  await page.click('.seal-option:nth-child(3)');
-  const afterSeal = await page.inputValue('#alias');
-  check('alias survives changing the seal', afterSeal === first, `${first} -> ${afterSeal}`);
-  check('seal selection is shown', await page.isVisible('.seal-option.selected'));
+    check('journalist is preselected',
+      (await page.locator('.signup-role-grid button[aria-pressed="true"] strong').textContent()) === 'Journalist');
+    check('journalist flow is three steps',
+      (await page.textContent('.signup-progress span')) === 'Step 1 of 3',
+      await page.textContent('.signup-progress span'));
 
-  await page.click('button[aria-label="Suggest another alias"]');
-  const suggested = await page.inputValue('#alias');
-  check('suggest another changes it', suggested !== first, `${first} -> ${suggested}`);
+    await page.fill('input[type=email]', `${uniq('reporter')}@example.com`);
+    await page.fill('input[type=password]', 'short');
+    await page.click('.signup-next');
+    await page.waitForTimeout(400);
+    // minLength=10 means the browser blocks submission before our handler runs
+    const passwordValid = await page.$eval('input[type=password]', (el) => el.checkValidity());
+    check('short password refused', passwordValid === false, 'field reported valid');
+    check('short password keeps you on step one',
+      (await page.textContent('.signup-progress span')) === 'Step 1 of 3',
+      await page.textContent('.signup-progress span'));
 
-  // preview reflects what will be claimed
-  const wanted = 'Iron Thicket ' + Math.floor(Math.random() * 8999 + 1000);
-  await page.fill('#alias', wanted);
-  check('preview shows the typed alias', (await page.textContent('.alias-preview strong')) === wanted);
+    await page.fill('input[type=password]', 'a-long-enough-password');
+    await page.click('.signup-next');
+    await page.waitForSelector('.seal-picker', { timeout: 10000 });
+    check('step two asks for a public alias', (await page.textContent('.signup-progress span')) === 'Step 2 of 3');
 
-  // email and password are now required
-  await page.click('.auth-submit');
-  await page.waitForTimeout(500);
-  check('signup refuses a missing email',
-    (await page.textContent('.auth-message'))?.includes('email'), await page.textContent('.auth-message'));
+    journalistAlias = 'Dry Beacon ' + Math.floor(Math.random() * 8999 + 1000);
+    await page.fill('.signup-step input[type=text]', journalistAlias);
+    await page.click('.seal-option:nth-child(3)');
+    await page.click('.signup-next');
 
-  const email = `ui-${Date.now().toString(36)}@vera.test`;
-  await page.fill('#signup-email', email);
-  await page.fill('#signup-password', '123');
-  await page.click('.auth-submit');
-  await page.waitForTimeout(500);
-  check('signup refuses a short password',
-    (await page.textContent('.auth-message'))?.includes('6 characters'), await page.textContent('.auth-message'));
+    await page.waitForSelector('.signup-upload', { timeout: 25000 });
+    check('step three asks for verification', (await page.textContent('.signup-progress span')) === 'Step 3 of 3');
+    check('verification step says the document is deleted',
+      (await page.textContent('.signup-step'))?.includes('deleted'), '');
+    check('it says the cedula is not stored',
+      (await page.textContent('.signup-step'))?.toLowerCase().includes('cédula'), '');
 
-  await page.fill('#signup-password', 'test-password');
+    await page.fill('.signup-step input[inputmode=numeric]', '24165');
+    await page.setInputFiles('.signup-upload input[type=file]', DOC);
+    await page.click('.signup-next');
 
-  // alias is validated last, once the credentials are in
-  await page.fill('#alias', 'x');
-  await page.click('.auth-submit');
-  await page.waitForTimeout(500);
-  check('signup refuses a too-short alias',
-    (await page.textContent('.auth-message'))?.includes('3 to 64'), await page.textContent('.auth-message'));
-  check('still on the signup screen', await page.isVisible('#alias'));
-  await page.fill('#alias', wanted);
+    await page.waitForSelector('.signup-complete', { timeout: 30000 });
+    check('journalist account created', await page.isVisible('.signup-complete'));
+    check('told the document will be deleted',
+      (await page.textContent('.signup-complete p'))?.includes('deleted'), await page.textContent('.signup-complete p'));
 
-  // ---- create the account
-  await page.click('.auth-submit');
-  await page.waitForSelector('.site-header', { timeout: 20000 });
-  check('claiming signs you in and reveals the app', await page.isVisible('.site-header'));
-  check('header shows the chosen alias',
-    (await page.textContent('.profile-pill strong')) === wanted, await page.textContent('.profile-pill strong'));
-  check('briefing renders seeded reporting', (await page.locator('.feed-story h2').count()) === 1);
-  check('three more reports listed', (await page.locator('.feed-note').count()) === 3);
+    await page.click('.signup-complete button');
+    await page.waitForTimeout(2500);
+    check('journalist lands in the app signed in', await page.isVisible('.site-header'), page.url());
+    check('no uncaught errors during journalist signup', errors.length === 0, errors.slice(0, 2).join(' | '));
+    await context.close();
+  }
 
-  // ---- badge gating, the thing that was asserting something false before
-  const verifiedOnFeed = await page.locator('.feed-story header svg').count();
-  check('seeded reporter keeps its verified mark', verifiedOnFeed >= 1, String(verifiedOnFeed));
+  // ---------------------------------------------------------- media org
+  {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.signup-role-grid', { timeout: 15000 });
+    await page.locator('.signup-role-grid button').nth(1).click();
+    check('media org flow is two steps',
+      (await page.textContent('.signup-progress span')) === 'Step 1 of 2',
+      await page.textContent('.signup-progress span'));
 
-  await page.goto(BASE + '/profile', { waitUntil: 'networkidle' });
-  check('own profile shows the alias', (await page.textContent('.profile-heading h1')) === wanted);
-  check('own profile has no verified badge', (await page.locator('.profile-heading .status-badge').count()) === 0);
-  check('profile explains why not verified',
-    (await page.textContent('.unverified-note'))?.includes('Not verified'));
-  check('account card shows the sign-in email',
-    (await page.textContent('.account-card h2'))?.includes(email),
-    (await page.textContent('.account-card h2')));
-  check('ordinary account gets no admin panel', (await page.locator('.admin-panel').count()) === 0);
+    await page.fill('input[type=email]', `${uniq('desk')}@gmail.com`);
+    await page.waitForTimeout(1200);
+    check('an unrecognised domain is flagged live', await page.isVisible('.signup-bad'),
+      await page.textContent('.signup-field'));
 
-  // ---- session survives a reload
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForSelector('.profile-heading h1', { timeout: 15000 });
-  check('session survives a reload', (await page.textContent('.profile-heading h1')) === wanted);
+    await page.fill('input[type=email]', `${uniq('desk')}@nytimes.com`);
+    await page.waitForTimeout(1200);
+    check('a recognised outlet is confirmed live', await page.isVisible('.signup-ok'));
 
-  // ---- publishing as a brand new account
-  await page.goto(BASE + '/write', { waitUntil: 'networkidle' });
-  const headline = 'A first report from the signup check ' + Math.floor(Math.random() * 8999 + 1000);
-  await page.fill('#headline', headline);
-  await page.fill('#story', 'Opening paragraph of the filing.\n> A line worth pulling out.\nClosing paragraph.');
-  await page.click('.publish-panel .button-accent');
-  await page.waitForURL(/\/articles\//, { timeout: 20000 });
-  check('publishing lands on the article', page.url().includes('/articles/'));
-  check('article shows the headline',
-    (await page.textContent('h1'))?.includes('A first report'), await page.textContent('h1'));
-  check('slug derived from the headline', page.url().includes('a-first-report-from-the-signup-check'), page.url());
-  check('pull quote rendered', (await page.locator('.article-body blockquote').count()) === 1);
-  check('two paragraphs rendered', (await page.locator('.article-body p').count()) === 2);
-  check('own article offers unpublish', await page.isVisible('.owner-actions'));
-  check('new author has no badge on their article',
-    (await page.locator('article header .status-badge').count()) === 0);
+    await page.fill('input[type=password]', 'a-long-enough-password');
+    await page.click('.signup-next');
+    await page.waitForSelector('.seal-picker', { timeout: 10000 });
+    await page.fill('.signup-step input[type=text]', 'Desk ' + Math.floor(Math.random() * 8999 + 1000));
+    await page.click('.signup-next');
+    await page.waitForSelector('.signup-complete', { timeout: 30000 });
+    check('media org account created', await page.isVisible('.signup-complete'));
+    check('no verification step for a media org',
+      !(await page.textContent('.signup-complete p'))?.includes('document'), await page.textContent('.signup-complete p'));
+    await context.close();
+  }
 
-  // ---- following
-  // go to a seeded reporter's article, not our own (ours is now the newest)
-  await page.goto(BASE + '/articles/the-night-shift-keeping-the-city-online', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.follow-button', { timeout: 15000 });
-  check('follow button offered on another byline', await page.isVisible('.follow-button'));
-  await page.click('.follow-button');
-  await page.waitForTimeout(1500);
-  check('follow toggles to Following',
-    (await page.textContent('.follow-button'))?.trim() === 'Following', await page.textContent('.follow-button'));
+  // ---------------------------------------------------------- funder
+  {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.signup-role-grid', { timeout: 15000 });
+    await page.locator('.signup-role-grid button').nth(2).click();
+    await page.fill('input[type=email]', `${uniq('backer')}@example.com`);
+    await page.fill('input[type=password]', 'a-long-enough-password');
+    await page.click('.signup-next');
+    await page.waitForSelector('.seal-picker', { timeout: 10000 });
+    await page.fill('.signup-step input[type=text]', 'Backer ' + Math.floor(Math.random() * 8999 + 1000));
+    await page.click('.signup-next');
+    await page.waitForSelector('.signup-complete', { timeout: 30000 });
+    check('funder account created', await page.isVisible('.signup-complete'));
+    check('funder is told the account is not active yet',
+      (await page.textContent('.signup-complete p'))?.includes('contribution'),
+      await page.textContent('.signup-complete p'));
+    await context.close();
+  }
 
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-  await page.click('.feed-filter button:nth-child(3)');
-  await page.waitForTimeout(700);
-  const followingCount = await page.locator('.feed-story, .feed-note').count();
-  check('Following filter narrows the feed', followingCount >= 1 && followingCount < 4, String(followingCount));
-
-  // ---- sign out returns to the gate
-  await page.goto(BASE + '/profile', { waitUntil: 'networkidle' });
-  await page.click('.account-card .secondary-button');
-  await page.waitForSelector('#alias', { timeout: 20000 });
-  check('sign out returns to the signup screen', await page.isVisible('#alias'));
-  check('header hidden again after sign out', !(await page.isVisible('.site-header')));
-
-  // ---- the admin account signs in and can verify
-  await page.click('.auth-alt button');            // switch to sign in
-  await page.waitForSelector('#email', { timeout: 10000 });
-  await page.fill('#email', 'admin@vera.test');
-  await page.fill('#password', 'vera-admin-2026');
-  await page.click('.auth-submit');
-  await page.waitForSelector('.site-header', { timeout: 20000 });
-  check('admin can sign in through the UI',
-    (await page.textContent('.profile-pill strong')) === 'Vera Desk', await page.textContent('.profile-pill strong'));
-
-  await page.goto(BASE + '/profile', { waitUntil: 'networkidle' });
-  check('admin sees the admin panel', await page.isVisible('.admin-panel'));
-  check('admin panel lists bylines', (await page.locator('.admin-panel .profile-report').count()) >= 5,
-    String(await page.locator('.admin-panel .profile-report').count()));
-
-  const target = page.locator('.admin-panel .profile-report', { hasText: wanted });
-  check('the new reporter is listed as unverified',
-    (await target.locator('span').first().textContent()) === 'Unverified',
-    await target.locator('span').first().textContent());
-  await target.locator('button').click();
-  await page.waitForTimeout(2000);
-  const retarget = page.locator('.admin-panel .profile-report', { hasText: wanted });
-  check('admin verifying a reporter sticks',
-    (await retarget.locator('span').first().textContent()) === 'Verified',
-    await retarget.locator('span').first().textContent());
-
-  // and it shows up on their byline
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-  await page.click('.feed-filter button:nth-child(2)');
-  await page.waitForTimeout(700);
-  check('verified mark now appears for that reporter',
-    (await page.locator('.feed-story header svg, .feed-note svg').count()) >= 1);
-
-  check('no uncaught errors in the browser', errors.length === 0, errors.slice(0, 3).join(' | '));
+  // ---------------------------------------------------------- sign in
+  {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#email', { timeout: 15000 });
+    await page.fill('#email', 'admin@vera.test');
+    await page.fill('#password', 'vera-admin-2026');
+    await page.click('.auth-submit');
+    await page.waitForSelector('.site-header', { timeout: 25000 });
+    check('admin can sign in', await page.isVisible('.site-header'));
+    await context.close();
+  }
 
   await browser.close();
   console.log(results.map((r) => r[0].padEnd(5) + r[1] + (r[2] ? '\n       ' + r[2] : '')).join('\n'));

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase, isConfigured } from "@/lib/supabase";
-import type { Article, Byline } from "@/lib/types";
+import type { AccountType, Article, Byline, PendingVerification, VerificationStatus } from "@/lib/types";
 
 const ADJECTIVES = ["Quiet", "Amber", "Hollow", "North", "Low", "Grey", "Far", "Still",
   "Salt", "Blue", "Iron", "Pale", "Long", "Dry", "First"];
@@ -28,12 +28,15 @@ type State = {
   articles: Article[];
   following: string[];
   isAdmin: boolean;
+  accountType: AccountType | null;
+  verification: VerificationStatus | null;
   fatal: string | null;
 };
 
 const EMPTY: State = {
   ready: false, signedIn: false, meId: null, email: null,
-  bylines: {}, articles: [], following: [], isAdmin: false, fatal: null,
+  bylines: {}, articles: [], following: [], isAdmin: false,
+  accountType: null, verification: null, fatal: null,
 };
 
 type Vera = State & {
@@ -47,7 +50,15 @@ type Vera = State & {
   authorOf: (article: Article) => Byline | null;
   isFollowing: (id: string) => boolean;
   feed: (filter: string) => Article[];
-  signUp: (email: string, password: string, alias: string, seal: string) => Promise<void>;
+  signUp: (input: {
+    email: string; password: string; alias: string; seal: string;
+    accountType: AccountType; bio?: string;
+  }) => Promise<void>;
+  isMediaDomain: (email: string) => Promise<boolean>;
+  submitVerification: (cnpNumber: string, document: File) => Promise<void>;
+  pendingVerifications: () => Promise<PendingVerification[]>;
+  decideVerification: (requestId: string, approve: boolean, reason?: string) => Promise<void>;
+  documentUrl: (path: string) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   setVerified: (journalistId: string, verified: boolean) => Promise<void>;
@@ -71,7 +82,8 @@ type BylineRow = {
 };
 type ArticleRow = {
   id: string; slug: string; journalist_id: string; title: string | null; dek: string;
-  body: string[] | null; art: string; category: string; read_mins: number; published_at: string | null;
+  body: string[] | null; art: string; category: string; read_mins: number;
+  published_at: string | null; visibility: "members" | "media_only" | null;
 };
 type StatRow = { journalist_id: string; followers: number; articles: number };
 
@@ -141,10 +153,12 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         category: row.category,
         readMins: row.read_mins,
         publishedAt: row.published_at ? Date.parse(row.published_at) : null,
+        visibility: row.visibility || "members",
       }));
 
     const [mineRes, followRes] = await Promise.all([
-      db.from("journalists").select("id, is_admin").eq("owner_user_id", session.user.id).maybeSingle(),
+      db.from("journalists")
+        .select("id, is_admin, account_type").eq("owner_user_id", session.user.id).maybeSingle(),
       db.from("follows").select("author_id"),
     ]);
 
@@ -157,7 +171,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const mine = mineRes.data as { id: string; is_admin: boolean };
+    const mine = mineRes.data as { id: string; is_admin: boolean; account_type: AccountType };
+    const verificationRes = await db.from("verification_requests").select("status").maybeSingle();
     setState({
       ready: true,
       signedIn: true,
@@ -167,6 +182,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       articles,
       following: ((followRes.data as { author_id: string }[]) || []).map((r) => r.author_id),
       isAdmin: Boolean(mine.is_admin),
+      accountType: mine.account_type,
+      verification: (verificationRes.data as { status: VerificationStatus } | null)?.status ?? null,
       fatal: null,
     });
   }, []);
@@ -236,9 +253,12 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         return live;
       },
 
-      signUp: (email, password, alias, seal) => guard(async () => {
+      signUp: ({ email, password, alias, seal, accountType, bio }) => guard(async () => {
         const db = mustHaveDb();
-        const { data, error } = await db.auth.signUp({ email, password });
+        const { data, error } = await db.auth.signUp({
+          email, password,
+          options: { data: { account_type: accountType } },
+        });
         if (error) {
           if (error.status === 429 || /rate limit/i.test(error.message)) {
             throw new Error("Too many sign-ups from this network. Try again shortly.");
@@ -246,22 +266,90 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           if (/already registered/i.test(error.message)) {
             throw new Error("That email already has an account. Sign in instead.");
           }
+          // the signup trigger raises this for a media_org address we do not recognise
+          if (/recognised outlet/i.test(error.message)) {
+            throw new Error("That address is not at a news organisation we recognise.");
+          }
           throw new Error(error.message);
         }
         if (!data.session) {
           throw new Error("Account created. Confirm the email address, then sign in.");
         }
         const id = await waitForProfile(data.session.user.id);
-        const { error: aliasError } = await db.from("journalists")
-          .update({ public_alias: alias, seal }).eq("id", id);
-        if (aliasError) {
-          if (aliasError.code === "23505") throw new Error("That alias is taken. Pick another.");
-          if (aliasError.code === "23514") throw new Error("Aliases are 3 to 64 letters, numbers and spaces.");
-          throw new Error(`Account made, but the alias did not stick: ${aliasError.message}`);
+        const { error: profileError } = await db.from("journalists")
+          .update({ public_alias: alias, seal, bio: bio || "" }).eq("id", id);
+        if (profileError) {
+          if (profileError.code === "23505") throw new Error("That alias is taken. Pick another.");
+          if (profileError.code === "23514") throw new Error("Aliases are 3 to 64 letters, numbers and spaces.");
+          throw new Error(`Account made, but the alias did not stick: ${profileError.message}`);
         }
         await load();
         setNotice(`Welcome, ${alias}`);
       }),
+
+      isMediaDomain: async (email) => {
+        const db = mustHaveDb();
+        const { data, error } = await db.rpc("domain_is_media", { address: email });
+        if (error) return false;
+        return Boolean(data);
+      },
+
+      // The CNP number never reaches the database in the clear, and the cedula
+      // and legal name are never collected at all: a reviewer reads them off
+      // the document, which is destroyed when they decide.
+      submitVerification: (cnpNumber, document) => guard(async () => {
+        const db = mustHaveDb();
+        if (!state.meId) throw new Error("Sign in first.");
+        const extension = document.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${state.meId}/id-${Date.now().toString(36)}.${extension}`;
+
+        const upload = await db.storage.from("verification-documents")
+          .upload(path, document, { upsert: true, contentType: document.type });
+        if (upload.error) throw new Error(`Upload failed: ${upload.error.message}`);
+
+        const { error } = await db.functions.invoke("submit-verification", {
+          body: { cnpNumber, documentPath: path },
+        });
+        if (error) {
+          await db.storage.from("verification-documents").remove([path]);
+          throw new Error(`Could not submit: ${error.message}`);
+        }
+        await load();
+        setNotice("Verification submitted for review");
+      }),
+
+      pendingVerifications: async () => {
+        const db = mustHaveDb();
+        const { data, error } = await db.rpc("pending_verifications");
+        if (error) throw new Error(error.message);
+        return ((data as {
+          id: string; journalist_id: string; alias: string;
+          document_path: string | null; submitted_at: string;
+        }[]) || []).map((row) => ({
+          id: row.id,
+          journalistId: row.journalist_id,
+          alias: row.alias,
+          documentPath: row.document_path,
+          submittedAt: Date.parse(row.submitted_at),
+        }));
+      },
+
+      decideVerification: (requestId, approve, reason) => guard(async () => {
+        const db = mustHaveDb();
+        const { error } = await db.functions.invoke("review-verification", {
+          body: { requestId, approve, reason: reason ?? null },
+        });
+        if (error) throw new Error(error.message);
+        await load();
+        setNotice(approve ? "Verified" : "Rejected");
+      }),
+
+      documentUrl: async (path) => {
+        const db = mustHaveDb();
+        const { data, error } = await db.storage.from("verification-documents")
+          .createSignedUrl(path, 300);
+        return error ? null : data.signedUrl;
+      },
 
       signIn: (email, password) => guard(async () => {
         const db = mustHaveDb();
@@ -333,6 +421,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           title: created.title as string, dek: created.dek, body: created.body || [],
           art: created.art, category: created.category, readMins: created.read_mins,
           publishedAt: created.published_at ? Date.parse(created.published_at) : null,
+          visibility: created.visibility || "members",
         };
       },
 
