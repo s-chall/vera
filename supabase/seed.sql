@@ -28,3 +28,10 @@ select j.id,
   'map', 'Press freedom', 4, now() - interval '5 hours'
 from public.journalists j where j.public_alias = 'Northstar'
 on conflict (slug) do nothing;
+
+-- Lead image referenced from the original report rather than copied here.
+update public.articles
+   set hero_image_url    = 'https://elpitazo.net/wp-content/uploads/2026/06/WhatsApp-Image-2026-06-03-at-5.23.51-PM.jpeg',
+       hero_image_credit = 'El Pitazo',
+       hero_image_alt    = 'Reporter Pablo Mujica, detained in Valera over his coverage of fuel shortages'
+ where slug = 'trujillo-reporter-detained-over-fuel-shortage-story';

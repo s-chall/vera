@@ -90,6 +90,7 @@ type ArticleRow = {
   id: string; slug: string; journalist_id: string; title: string | null; dek: string;
   body: string[] | null; art: string; category: string; read_mins: number;
   published_at: string | null; visibility: "members" | "media_only" | null;
+  hero_image_url: string | null; hero_image_credit: string | null; hero_image_alt: string | null;
 };
 type StatRow = { journalist_id: string; followers: number; articles: number };
 
@@ -172,6 +173,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         readMins: row.read_mins,
         publishedAt: row.published_at ? Date.parse(row.published_at) : null,
         visibility: row.visibility || "members",
+        heroImageUrl: row.hero_image_url,
+        heroImageCredit: row.hero_image_credit,
+        heroImageAlt: row.hero_image_alt,
       }));
 
     const [mineRes, followRes] = await Promise.all([
@@ -473,6 +477,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           art: created.art, category: created.category, readMins: created.read_mins,
           publishedAt: created.published_at ? Date.parse(created.published_at) : null,
           visibility: created.visibility || "members",
+          heroImageUrl: created.hero_image_url,
+          heroImageCredit: created.hero_image_credit,
+          heroImageAlt: created.hero_image_alt,
         };
       },
 

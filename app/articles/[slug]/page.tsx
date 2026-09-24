@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bookmark, Clock3 } from "lucide-react";
 import { useVera } from "@/lib/vera";
+import { bylineName } from "@/lib/types";
 import { ArtBlock } from "@/lib/art";
 import { StatusBadge } from "@/components/status-badge";
 import { ArticlePickups } from "@/components/article-pickups";
@@ -48,7 +49,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
         <header>
           <div className="article-byline">
             <span className={`author-dot ${author?.seal ?? ""}`} />
-            <strong>{author?.alias ?? "Unknown"}</strong>
+            <strong>{bylineName(author)}</strong>
             <span>{filedAt}</span>
             <span><Clock3 aria-hidden="true" />{article.readMins} min read</span>
             {author && !mine ? (
@@ -67,7 +68,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
               <StatusBadge verified>Reporter privately verified</StatusBadge>
               {author.credentialName ? (
                 <dl className="credential-details">
-                  <div><dt>Name</dt><dd>{author.credentialName}</dd></div>
+                  <div><dt>Publishing as</dt><dd>{author.alias}</dd></div>
                   {author.credentialCarnet ? <div><dt>Carnet CNP</dt><dd>{author.credentialCarnet}</dd></div> : null}
                   {author.credentialSection ? <div><dt>Seccional CNP</dt><dd>{author.credentialSection}</dd></div> : null}
                 </dl>
@@ -80,9 +81,14 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           {/* The media needs its own sized, positioned box: ArtBlock renders a
               fill image, which would otherwise escape to the viewport. */}
           <div className="article-figure-media">
-            <ArtBlock slug={article.slug} kind={article.art} priority sizes="(max-width: 760px) 100vw, 760px" />
+            <ArtBlock slug={article.slug} kind={article.art} priority
+              url={article.heroImageUrl} alt={article.heroImageAlt}
+              sizes="(max-width: 760px) 100vw, 1180px" />
           </div>
-          <figcaption>Identifying details were separated from source files before publication.</figcaption>
+          <figcaption>
+            {article.heroImageAlt ?? "Lead image"}
+            {article.heroImageCredit ? <> · Photograph: {article.heroImageCredit}</> : null}
+          </figcaption>
         </figure>
 
         <div className="article-body">
@@ -97,7 +103,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           <aside className="owner-actions">
             <div>
               <strong>This is your report.</strong>
-              <span>It is visible to everyone under {author?.alias}. Nothing links it to your wallet.</span>
+              <span>It is visible to everyone under {bylineName(author)}. Nothing links it to your wallet.</span>
             </div>
             <button className="secondary-button danger" disabled={vera.busy}
               onClick={() => void vera.unpublish(article.id)}>Unpublish</button>

@@ -12,14 +12,20 @@ const PHOTOS: Record<string, { src: typeof valleyImage; alt: string }> = {
   },
 };
 
-export function hasPhoto(slug: string) {
-  return Boolean(PHOTOS[slug]);
+export function hasPhoto(slug: string, url?: string | null) {
+  return Boolean(url) || Boolean(PHOTOS[slug]);
 }
 
 /** Falls back to a generated cover so an article without a photo still reads as one. */
-export function ArtBlock({ slug, kind, priority, sizes }: {
+export function ArtBlock({ slug, kind, priority, sizes, url, alt }: {
   slug: string; kind: string; priority?: boolean; sizes?: string;
+  url?: string | null; alt?: string | null;
 }) {
+  // A story can carry its own lead image, referenced from wherever it was
+  // published rather than bundled here.
+  if (url) {
+    return <Image src={url} alt={alt || "Lead image"} fill priority={priority} sizes={sizes} />;
+  }
   const photo = PHOTOS[slug];
   if (photo) return <Image src={photo.src} alt={photo.alt} fill priority={priority} sizes={sizes} />;
   return <span className={`generated-art art-${kind}`} role="img" aria-label="Generated cover artwork" />;

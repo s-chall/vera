@@ -36,6 +36,16 @@ export type Article = {
   readMins: number;
   publishedAt: number | null;
   visibility: "members" | "media_only";
+  heroImageUrl: string | null;
+  heroImageCredit: string | null;
+  heroImageAlt: string | null;
 };
 
 export type FeedFilter = "for-you" | "latest" | "following";
+
+/** What a story is signed with: the press credential when there is one,
+ *  otherwise the protected alias. */
+export function bylineName(byline: { alias: string; credentialName: string | null } | null) {
+  if (!byline) return "Unknown";
+  return byline.credentialName ?? byline.alias;
+}

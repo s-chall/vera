@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { useVera } from "@/lib/vera";
 import { ArtBlock, hasPhoto } from "@/lib/art";
-import type { Article } from "@/lib/types";
+import { bylineName, type Article } from "@/lib/types";
 
 type FeedTab = "Latest" | "Following";
 const tabs: FeedTab[] = ["Latest", "Following"];
@@ -96,7 +96,7 @@ export function NewsFeed() {
                 <div className="news-article-content">
                   <header className="news-article-header">
                     <div className="news-byline">
-                      <span className="news-alias">{author?.alias ?? "Unknown"}</span>
+                      <span className="news-alias">{bylineName(author)}</span>
                       {author?.verified ? (
                         <>
                           <ShieldCheck className="news-verified-icon" aria-hidden="true" size={16} />
@@ -127,10 +127,15 @@ export function NewsFeed() {
                     <p className="news-summary">{article.dek}</p>
                   </Link>
 
-                  {hasPhoto(article.slug) ? (
+                  {hasPhoto(article.slug, article.heroImageUrl) ? (
                     <Link className="news-image-link" href={href} aria-label={`Read ${article.title}`}>
-                      <ArtBlock slug={article.slug} kind={article.art} sizes="(max-width: 720px) 100vw, 640px" />
-                      <span className="news-image-caption">{article.title}</span>
+                      <ArtBlock slug={article.slug} kind={article.art}
+                        url={article.heroImageUrl} alt={article.heroImageAlt}
+                        sizes="(max-width: 720px) 100vw, 640px" />
+                      <span className="news-image-caption">
+                        {article.title}
+                        {article.heroImageCredit ? ` · ${article.heroImageCredit}` : ""}
+                      </span>
                     </Link>
                   ) : null}
 
