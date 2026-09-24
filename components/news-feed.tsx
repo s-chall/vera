@@ -1,153 +1,62 @@
 "use client";
 
-import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import {
-  Bookmark,
-  Heart,
-  MessageCircle,
-  Repeat2,
-  Search,
-  ShieldCheck,
-} from "lucide-react";
+import { Heart, Lock, MessageCircle, Repeat2, Search, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import roadsideSources from "@/assets/roadside-sources.png";
-import valleyReporting from "@/assets/valley-reporting.png";
+import { useVera } from "@/lib/vera";
+import { ArtBlock, hasPhoto } from "@/lib/art";
+import type { Article } from "@/lib/types";
 
-type FeedTab = "Journalists" | "Activists";
+type FeedTab = "Latest" | "Following";
+const tabs: FeedTab[] = ["Latest", "Following"];
 
-type FeedItem = {
-  alias: string;
-  avatar: string;
-  date: string;
-  group: FeedTab;
-  title: string;
-  summary: string;
-  topic: string;
-  image?: StaticImageData;
-  imageAlt?: string;
-  likes: number;
-  comments: number;
-  shares: number;
-};
+const initials = (alias: string) =>
+  alias.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-const articleHref = "/articles/towns-erased-from-the-map";
-
-const feedItems: FeedItem[] = [
-  {
-    alias: "Northstar",
-    avatar: "N",
-    date: "Sep 24",
-    group: "Journalists",
-    title: "The towns erased from the map",
-    summary:
-      "County records show how three communities disappeared from planning documents while road and water contracts moved forward.",
-    topic: "Public records",
-    image: valleyReporting,
-    imageAlt: "A reporter overlooking a valley while documenting local land use",
-    likes: 184,
-    comments: 21,
-    shares: 38,
-  },
-  {
-    alias: "Red Cedar",
-    avatar: "RC",
-    date: "Sep 23",
-    group: "Journalists",
-    title: "A river permit with no public hearing",
-    summary:
-      "A review of agency filings finds a major discharge permit advanced before nearby residents received notice.",
-    topic: "Environment",
-    likes: 132,
-    comments: 17,
-    shares: 29,
-  },
-  {
-    alias: "Mothlight",
-    avatar: "M",
-    date: "Sep 21",
-    group: "Journalists",
-    title: "Eviction filings outpace the official count",
-    summary:
-      "Court dockets reveal hundreds of housing cases missing from the city dashboard used to direct tenant aid.",
-    topic: "Housing",
-    likes: 96,
-    comments: 14,
-    shares: 22,
-  },
-  {
-    alias: "Riverwatch",
-    avatar: "R",
-    date: "Sep 24",
-    group: "Activists",
-    title: "What roadside sources told us",
-    summary:
-      "Residents living near the freight route logged repeated water outages and shared records from months of unanswered reports.",
-    topic: "Environment",
-    image: roadsideSources,
-    imageAlt: "Community sources gathering beside a rural roadside",
-    likes: 211,
-    comments: 32,
-    shares: 47,
-  },
-  {
-    alias: "Tenant Signal",
-    avatar: "TS",
-    date: "Sep 22",
-    group: "Activists",
-    title: "The repair requests that vanished",
-    summary:
-      "Tenants compared receipts and found repeated maintenance complaints were closed without inspections or repairs.",
-    topic: "Housing",
-    likes: 148,
-    comments: 26,
-    shares: 35,
-  },
-  {
-    alias: "Borderless Archive",
-    avatar: "BA",
-    date: "Sep 20",
-    group: "Activists",
-    title: "Tracking a widening phone-search policy",
-    summary:
-      "Newly released directives show when officers may copy device data and how long those records can be retained.",
-    topic: "Civil liberties",
-    likes: 173,
-    comments: 19,
-    shares: 41,
-  },
-];
-
-const tabs: FeedTab[] = ["Journalists", "Activists"];
+function filed(at: number | null) {
+  if (!at) return "Draft";
+  const mins = Math.round((Date.now() - at) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
+  return new Date(at).toLocaleDateString([], { month: "short", day: "numeric" });
+}
 
 export function NewsFeed() {
-  const [activeTab, setActiveTab] = useState<FeedTab>("Journalists");
+  const vera = useVera();
+  const [activeTab, setActiveTab] = useState<FeedTab>("Latest");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
 
-    return feedItems.filter((item) => {
-      if (item.group !== activeTab) return false;
-      if (!query) return true;
+    return vera.articles
+      .filter((article) => article.publishedAt !== null)
+      .filter((article) =>
+        activeTab === "Latest"
+          ? true
+          : vera.following.includes(article.journalistId) || article.journalistId === vera.meId)
+      .filter((article) => {
+        if (!query) return true;
+        const author = vera.byId(article.journalistId);
+        return [author?.alias ?? "", article.title, article.dek, article.category]
+          .some((value) => value.toLocaleLowerCase().includes(query));
+      });
+  }, [vera, activeTab, searchQuery]);
 
-      return [item.alias, item.title, item.summary, item.topic].some((value) =>
-        value.toLocaleLowerCase().includes(query),
-      );
-    });
-  }, [activeTab, searchQuery]);
+  const emptyMessage = searchQuery.trim()
+    ? "No matching news. Try another name or topic."
+    : activeTab === "Following"
+      ? "Nothing from the people you follow yet. Follow a byline from the Latest tab."
+      : "Nothing published yet.";
 
   return (
     <section className="news-shell" aria-labelledby="news-heading">
       <header className="news-header">
-        <h1 className="news-title" id="news-heading">
-          News
-        </h1>
+        <h1 className="news-title" id="news-heading">News</h1>
 
-        <label className="news-search-label" htmlFor="news-search">
-          Search news
-        </label>
+        <label className="news-search-label" htmlFor="news-search">Search news</label>
         <div className="news-search-wrap">
           <Search className="news-search-icon" aria-hidden="true" size={19} />
           <input
@@ -178,80 +87,81 @@ export function NewsFeed() {
 
       <div className="news-feed" aria-live="polite">
         {filteredItems.length === 0 ? (
-          <p className="news-empty">No matching news. Try another name or topic.</p>
+          <p className="news-empty">{emptyMessage}</p>
         ) : (
-          filteredItems.map((item) => (
-            <article className="news-article" key={`${item.group}-${item.alias}`}>
-              <div className="news-avatar" aria-hidden="true">
-                {item.avatar}
-              </div>
+          filteredItems.map((article: Article) => {
+            const author = vera.byId(article.journalistId);
+            const mine = article.journalistId === vera.meId;
+            const href = `/articles/${article.slug}`;
 
-              <div className="news-article-content">
-                <header className="news-article-header">
-                  <div className="news-byline">
-                    <span className="news-alias">{item.alias}</span>
-                    <ShieldCheck
-                      className="news-verified-icon"
-                      aria-hidden="true"
-                      size={16}
-                    />
-                    <span className="news-verified">Verified</span>
-                    <time className="news-date">{item.date}</time>
-                  </div>
-                </header>
+            return (
+              <article className="news-article" key={article.id}>
+                <div className={`news-avatar${author ? ` identity-seal ${author.seal}` : ""}`} aria-hidden="true">
+                  {author ? initials(author.alias) : "··"}
+                </div>
 
-                <Link className="news-story-link" href={articleHref}>
-                  <h2 className="news-headline">{item.title}</h2>
-                  <p className="news-summary">{item.summary}</p>
-                </Link>
+                <div className="news-article-content">
+                  <header className="news-article-header">
+                    <div className="news-byline">
+                      <span className="news-alias">{author?.alias ?? "Unknown"}</span>
+                      {author?.verified ? (
+                        <>
+                          <ShieldCheck className="news-verified-icon" aria-hidden="true" size={16} />
+                          <span className="news-verified">Verified</span>
+                        </>
+                      ) : null}
+                      <time className="news-date">{filed(article.publishedAt)}</time>
+                      {article.visibility === "media_only" ? (
+                        <span className="news-restricted" title="Visible to media organisations only">
+                          <Lock aria-hidden="true" size={13} />Media only
+                        </span>
+                      ) : null}
+                    </div>
+                    {author && !mine ? (
+                      <button
+                        className={`news-follow${vera.isFollowing(author.id) ? " is-following" : ""}`}
+                        type="button"
+                        disabled={vera.busy}
+                        onClick={() => void vera.toggleFollow(author.id)}
+                      >
+                        {vera.isFollowing(author.id) ? "Following" : "Follow"}
+                      </button>
+                    ) : null}
+                  </header>
 
-                {item.image && item.imageAlt ? (
-                  <Link
-                    className="news-image-link"
-                    href={articleHref}
-                    aria-label={`Read ${item.title}`}
-                  >
-                    <Image
-                      className="news-image"
-                      src={item.image}
-                      alt={item.imageAlt}
-                      sizes="(max-width: 720px) 100vw, 640px"
-                    />
-                    <span className="news-image-caption">{item.title}</span>
-                    <Bookmark className="news-bookmark" aria-hidden="true" size={20} />
+                  <Link className="news-story-link" href={href}>
+                    <h2 className="news-headline">{article.title}</h2>
+                    <p className="news-summary">{article.dek}</p>
                   </Link>
-                ) : null}
 
-                <footer className="news-actions" aria-label={`Actions for ${item.title}`}>
-                  <button className="news-action" type="button" aria-label={`Like ${item.title}`}>
-                    <Heart aria-hidden="true" size={20} />
-                    <span>{item.likes}</span>
-                  </button>
-                  <button
-                    className="news-action"
-                    type="button"
-                    aria-label={`Comment on ${item.title}`}
-                  >
-                    <MessageCircle aria-hidden="true" size={20} />
-                    <span>{item.comments}</span>
-                  </button>
-                  <button className="news-action" type="button" aria-label={`Share ${item.title}`}>
-                    <Repeat2 aria-hidden="true" size={20} />
-                    <span>{item.shares}</span>
-                  </button>
-                  {!item.image ? (
-                    <button
-                      className="news-action news-action-bookmark"
-                      type="button"
-                      aria-label={`Bookmark ${item.title}`}
-                    >
-                      <Bookmark aria-hidden="true" size={20} />
-                    </button>
+                  {hasPhoto(article.slug) ? (
+                    <Link className="news-image-link" href={href} aria-label={`Read ${article.title}`}>
+                      <ArtBlock slug={article.slug} kind={article.art} sizes="(max-width: 720px) 100vw, 640px" />
+                      <span className="news-image-caption">{article.title}</span>
+                    </Link>
                   ) : null}
-                </footer>
-              </div>
-            </article>
-          ))
+
+                  {/* Counts are deliberately absent: nothing records engagement yet,
+                      and a number here would be invented. */}
+                  <footer className="news-actions" aria-label={`Actions for ${article.title}`}>
+                    <button className="news-action" type="button" disabled
+                      title="Likes are not recorded yet" aria-label={`Like ${article.title}`}>
+                      <Heart aria-hidden="true" size={20} />
+                    </button>
+                    <button className="news-action" type="button" disabled
+                      title="Comments are not built yet" aria-label={`Comment on ${article.title}`}>
+                      <MessageCircle aria-hidden="true" size={20} />
+                    </button>
+                    <button className="news-action" type="button" disabled
+                      title="Sharing is not built yet" aria-label={`Share ${article.title}`}>
+                      <Repeat2 aria-hidden="true" size={20} />
+                    </button>
+                    <span className="news-readtime">{article.readMins} min read</span>
+                  </footer>
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
     </section>

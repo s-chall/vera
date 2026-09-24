@@ -970,3 +970,15 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 
 .writer-status--error { color: var(--danger); font-weight: 600; }
 .writer-avatar.identity-seal { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+
+/* ---------- news feed: real bylines, follow, restricted marker ---------- */
+.news-avatar.identity-seal { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.news-article-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.news-restricted { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; background: var(--blue-soft); color: var(--blue); font-size: .7rem; font-weight: 700; }
+.news-follow { min-height: 30px; padding: 0 13px; border: 1.5px solid var(--ink); border-radius: 99px; background: var(--surface-strong); font-size: .76rem; font-weight: 700; }
+.news-follow.is-following { border-color: var(--line); color: var(--ink-soft); background: transparent; }
+.news-follow:disabled { opacity: .6; }
+.news-action:disabled { opacity: .4; cursor: not-allowed; }
+.news-readtime { margin-left: auto; color: var(--ink-soft); font-size: .76rem; font-weight: 600; }
+.news-image-link { position: relative; display: block; min-height: 280px; overflow: hidden; border-radius: 12px; }
+.news-image-link img { object-fit: cover; }
