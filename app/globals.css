@@ -420,6 +420,9 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .journalist-handle { color: var(--ink-soft); font-size: .8rem; }
 .journalist-settings { align-self: start; }
 .profile-summary { padding: 22px 0; border-bottom: 1px solid var(--line); }
+/* sibling margin rather than a grid gap: .profile-summary is switched to
+   display:block at a narrower breakpoint, where a gap would stop applying */
+.profile-summary > * + * { margin-top: 14px; }
 .profile-wallet-compact { width: 100%; max-width: 100%; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 48px; border: 1px solid #c7c1b7; border-radius: 10px; background: var(--surface); }
 .profile-wallet-value { min-width: 0; display: flex; flex-direction: column; }
 .profile-wallet-value > span { margin-bottom: 2px; color: var(--ink-soft); font-size: .65rem; font-weight: 650; }
