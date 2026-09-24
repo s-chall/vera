@@ -4,7 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bookmark, Clock3, ShieldCheck } from "lucide-react";
 import { useVera } from "@/lib/vera";
-import { ArtBlock, hasPhoto } from "@/lib/art";
+import { ArtBlock } from "@/lib/art";
 import { StatusBadge } from "@/components/status-badge";
 
 export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -58,8 +58,12 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           {author ? <StatusBadge verified={author.verified}>Reporter privately verified</StatusBadge> : null}
         </header>
 
-        <figure className={hasPhoto(article.slug) ? "" : "figure-generated"}>
-          <ArtBlock slug={article.slug} kind={article.art} priority sizes="(max-width: 760px) 100vw, 760px" />
+        <figure className="article-figure">
+          {/* The media needs its own sized, positioned box: ArtBlock renders a
+              fill image, which would otherwise escape to the viewport. */}
+          <div className="article-figure-media">
+            <ArtBlock slug={article.slug} kind={article.art} priority sizes="(max-width: 760px) 100vw, 760px" />
+          </div>
           <figcaption>Identifying details were separated from source files before publication.</figcaption>
         </figure>
 
