@@ -137,12 +137,14 @@ const finish = () => {
     await page.fill('#cnp', realCnp);
     await page.fill('#cedula', realCedula);
     await page.click('.auth-submit');
-    // the prompt clears once the request is recorded
     await page.waitForSelector('#cnp', { state: 'detached', timeout: 30000 });
     check('verification prompt clears once submitted', !(await page.isVisible('#cnp')));
 
-    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    // A verified journalist must land in the app, not back on the signup form.
+    await page.waitForURL((url) => !url.pathname.startsWith('/signup'), { timeout: 20000 });
     await page.waitForSelector('.site-header', { timeout: 20000 });
+    check('verifying leaves the signup route', !page.url().includes('/signup'), page.url());
+    check('the signup form is not shown again', !(await page.isVisible('.signup-role-grid')));
     check('journalist is in the app and no longer prompted',
       (await page.isVisible('.site-header')) && !(await page.isVisible('#cnp')), page.url());
     check('no uncaught errors during journalist signup', errors.length === 0, errors.slice(0, 2).join(' | '));
@@ -198,6 +200,22 @@ const finish = () => {
     check('funder is told the account is not active yet',
       (await page.textContent('.signup-complete p'))?.includes('contribution'),
       await page.textContent('.signup-complete p'));
+    await context.close();
+  }
+
+  // ------------------------------------------- signed in, visiting /signup
+  {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#email', { timeout: 15000 });
+    await page.fill('#email', 'funder@vera.test');
+    await page.fill('#password', 'vera-demo-2026');
+    await page.click('.auth-submit');
+    await page.waitForSelector('.site-header', { timeout: 25000 });
+    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2500);
+    check('an existing account is redirected away from signup',
+      !page.url().includes('/signup') && !(await page.isVisible('.signup-role-grid')), page.url());
     await context.close();
   }
 

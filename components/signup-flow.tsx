@@ -38,6 +38,11 @@ export function SignupFlow() {
     if (vera.ready && !alias) setAlias(vera.suggestAlias());
   }, [vera.ready, alias, vera]);
 
+  // Already signed in and not mid-completion: there is nothing to sign up for.
+  useEffect(() => {
+    if (vera.ready && vera.signedIn && !created) router.replace("/");
+  }, [vera.ready, vera.signedIn, created, router]);
+
   // Check the outlet domain as they type so the rejection is not a surprise at submit.
   useEffect(() => {
     if (role !== "media_org" || !email.includes("@")) { setDomainOk(null); return; }

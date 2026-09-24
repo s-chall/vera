@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Clock3, LogOut, ShieldCheck, ShieldX } from "lucide-react";
 import { useVera } from "@/lib/vera";
 
@@ -11,8 +12,17 @@ import { useVera } from "@/lib/vera";
  */
 export function VerificationPrompt() {
   const vera = useVera();
+  const router = useRouter();
+  const pathname = usePathname();
   const [cnp, setCnp] = useState("");
   const [cedula, setCedula] = useState("");
+
+  // Verifying from /signup would otherwise hand control back to the signup
+  // form, which remounts empty and shows step one to someone who already has
+  // an account.
+  useEffect(() => {
+    if (pathname === "/signup") router.replace("/");
+  }, [pathname, router]);
 
   const signOut = (
     <p className="auth-alt">
