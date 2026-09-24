@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useVera } from "@/lib/vera";
+import type { AccountType } from "@/lib/types";
 import { CircleUserRound, FilePenLine, HandCoins, MessageSquare, Newspaper, Search } from "lucide-react";
 import { VeraMark } from "@/components/vera-mark";
 
@@ -13,8 +15,23 @@ const links = [
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];
 
+const TYPE_LABEL: Record<AccountType, string> = {
+  journalist: "Journalist",
+  media_org: "Media organisation",
+  funder: "Funder",
+};
+
+const initials = (alias: string) =>
+  alias
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
 export function SiteHeader() {
   const pathname = usePathname();
+  const { me, accountType } = useVera();
   if (pathname.startsWith("/signup")) return null;
   return (
     <>
@@ -28,7 +45,8 @@ export function SiteHeader() {
           </Link>
           <nav className="desktop-nav" aria-label="Primary navigation">
             {links.map(({ href, label, icon: Icon }) => {
-              const active = href === "/" ? pathname === "/" || pathname.startsWith("/articles") : pathname.startsWith(href);
+              const active =
+                href === "/" ? pathname === "/" || pathname.startsWith("/articles") : pathname.startsWith(href);
               return (
                 <Link href={href} key={href} aria-current={active ? "page" : undefined}>
                   <Icon aria-hidden="true" />
@@ -45,17 +63,20 @@ export function SiteHeader() {
             Search reports
           </button>
           <Link className="profile-pill" href="/profile">
-            <b aria-hidden="true">QC</b>
+            <b aria-hidden="true" className={me ? `identity-seal ${me.seal}` : undefined}>
+              {me ? initials(me.alias) : "··"}
+            </b>
             <span>
-              <strong>Quiet Current</strong>
-              <small>Private profile</small>
+              <strong>{me ? me.alias : "Signed out"}</strong>
+              <small>{me && accountType ? TYPE_LABEL[accountType] : "Private profile"}</small>
             </span>
           </Link>
         </div>
       </header>
       <nav className="mobile-nav" aria-label="Primary navigation">
         {links.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" || pathname.startsWith("/articles") : pathname.startsWith(href);
+          const active =
+            href === "/" ? pathname === "/" || pathname.startsWith("/articles") : pathname.startsWith(href);
           return (
             <Link href={href} key={href} aria-current={active ? "page" : undefined}>
               <Icon aria-hidden="true" />
