@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { CircleUserRound, FilePenLine, Landmark, Newspaper, Search } from "lucide-react";
 
 const links = [
-  { href: "/", label: "Briefing", icon: Newspaper },
+  { href: "/", label: "News", icon: Newspaper },
   { href: "/fund", label: "Fund", icon: Landmark },
   { href: "/write", label: "Write", icon: FilePenLine },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
