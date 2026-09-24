@@ -90,6 +90,9 @@ freely, there is nothing in the local database worth keeping.
 docker restart supabase_edge_runtime_vera
 ```
 
+After *adding* a new function, a restart is not enough: the function list is
+fixed when the stack starts. Run `npx supabase stop && npx supabase start`.
+
 Otherwise the old code keeps serving, which looks exactly like your change
 having no effect.
 
@@ -119,6 +122,30 @@ collect the confirmation mail from Mailpit and follow the link.
 Worth turning on before this is real. For a media organisation it is the thing
 that proves control of a mailbox at the outlet, rather than only proving they
 typed a domain we recognise.
+
+### Translation
+
+An article can be read in Spanish, Portuguese or French. Translations are
+**cached** in `article_translations`, so a story is translated once and then
+served from the database.
+
+The seeded Spanish translation of the lead story is marked `human` and works out
+of the box. For anything else, set `ANTHROPIC_API_KEY` in the
+`translate-article` function's secrets. Without it the endpoint returns 501 and
+says so rather than failing quietly.
+
+Translation asks for the article **as the calling user**, so it cannot be used to
+reach a story the reader is not allowed to see.
+
+### Republication
+
+`article_pickups` records which outlets are running a story, shown in a sidebar
+on the article page. Readable by anyone who can read the article; only an admin
+can record one, since it is an editorial claim about a third party.
+
+The outlet marks are drawn from the outlet name. No trademarked logo files are
+bundled; swap `WORDMARK` in `components/article-pickups.tsx` if you have licence
+to use real ones.
 
 ## Troubleshooting
 

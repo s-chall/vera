@@ -1055,3 +1055,13 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .article-layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   .pickups { position: static; }
 }
+
+/* ---------- translation switch ---------- */
+.translate-bar { margin: 16px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.translate-label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: .76rem; font-weight: 700; }
+.translate-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.translate-options button { position: relative; min-height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface-strong); color: var(--ink-soft); font-size: .76rem; font-weight: 700; }
+.translate-options button[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--paper); }
+.translate-options button:disabled { opacity: .55; cursor: wait; }
+.translate-ready { position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+.translate-error { width: 100%; margin: 4px 0 0; color: var(--danger); font-size: .76rem; font-weight: 600; }

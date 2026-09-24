@@ -1,17 +1,19 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bookmark, Clock3, ShieldCheck } from "lucide-react";
 import { useVera } from "@/lib/vera";
 import { ArtBlock } from "@/lib/art";
 import { StatusBadge } from "@/components/status-badge";
 import { ArticlePickups } from "@/components/article-pickups";
+import { ArticleTranslate, type Translation } from "@/components/article-translate";
 
 export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const vera = useVera();
   const article = vera.bySlug(slug);
+  const [translation, setTranslation] = useState<Translation | null>(null);
 
   if (!vera.ready) return <main id="main-content" className="article-page"><p className="article-status">Loading…</p></main>;
 
@@ -30,6 +32,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
 
   const author = vera.authorOf(article);
   const mine = author?.id === vera.meId;
+  const shown = translation ?? article;
   const filedAt = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString([], { month: "long", day: "numeric" })
     : "Draft";
@@ -55,8 +58,10 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
               </button>
             ) : null}
           </div>
-          <h1>{article.title}</h1>
-          <p className="article-dek">{article.dek}</p>
+          <h1>{shown.title}</h1>
+          <p className="article-dek">{shown.dek}</p>
+          <ArticleTranslate articleId={article.id} active={translation?.language ?? "en"}
+            onChange={setTranslation} />
           {author ? <StatusBadge verified={author.verified}>Reporter privately verified</StatusBadge> : null}
         </header>
 
@@ -75,7 +80,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
         </aside>
 
         <div className="article-body">
-          {article.body.map((line, index) => (
+          {shown.body.map((line, index) => (
             line.startsWith(">")
               ? <blockquote key={index}>{line.replace(/^>\s*/, "")}</blockquote>
               : <p key={index}>{line}</p>
