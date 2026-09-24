@@ -6,6 +6,7 @@ import { ArrowLeft, Bookmark, Clock3, ShieldCheck } from "lucide-react";
 import { useVera } from "@/lib/vera";
 import { ArtBlock } from "@/lib/art";
 import { StatusBadge } from "@/components/status-badge";
+import { ArticlePickups } from "@/components/article-pickups";
 
 export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -39,6 +40,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
         <Link href="/" className="back-link"><ArrowLeft aria-hidden="true" />Back to briefing</Link>
         <button className="secondary-button"><Bookmark aria-hidden="true" />Save</button>
       </div>
+      <div className="article-layout">
       <article>
         <header>
           <div className="article-byline">
@@ -91,6 +93,8 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           </aside>
         ) : null}
       </article>
+      <ArticlePickups articleId={article.id} />
+      </div>
     </main>
   );
 }

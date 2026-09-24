@@ -44,8 +44,15 @@ const profileOf = async (token, userId) => {
   check('articles unreadable without an account',
     anonArticles.status >= 400 || (Array.isArray(anonArticles.data) && anonArticles.data.length === 0),
     anonArticles.status + ' n=' + (anonArticles.data?.length));
+  // 20260924220000_chat_public_reads.sql deliberately opens the payout ledger to
+  // anon so Chat can read it. Pinned here so the change is visible, not silent:
+  // the ledger joins an alias to an amount, which is readable by anyone.
   const anonLedger = await api('/rest/v1/public_payout_ledger?select=*');
-  check('payout ledger unreadable without an account', anonLedger.status >= 400, anonLedger.status);
+  check('payout ledger is intentionally public', anonLedger.status === 200, anonLedger.status);
+  const anonArticlesStill = await api('/rest/v1/articles?select=slug');
+  check('articles remain closed to anon',
+    anonArticlesStill.status >= 400 || anonArticlesStill.data?.length === 0,
+    anonArticlesStill.status + ' n=' + anonArticlesStill.data?.length);
 
   // ---- anonymous sessions are gone
   const anonSignup = await api('/auth/v1/signup', { method: 'POST', body: {} });

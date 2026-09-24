@@ -1028,3 +1028,30 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .news-action:disabled { opacity: .4; cursor: not-allowed; }
 .news-readtime { margin-left: auto; color: var(--ink-soft); font-size: .76rem; font-weight: 600; }
 
+
+/* ---------- article pickups sidebar ---------- */
+.article-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 40px; align-items: start; }
+
+.pickups { position: sticky; top: 28px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.pickups-header { display: flex; align-items: center; gap: 8px; color: var(--blue); }
+.pickups-header h2 { margin: 0; font-size: .82rem; font-weight: 700; letter-spacing: .02em; }
+.pickups-note { margin: 10px 0 16px; color: var(--ink-soft); font-size: .76rem; line-height: 1.5; }
+.pickups-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.pickups-list a, .pickups-list > li > span { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-strong); color: inherit; }
+.pickups-list a:hover { border-color: var(--ink); }
+.pickups-list svg { margin-left: auto; color: var(--ink-soft); }
+
+.pickup-mark { flex: 0 0 auto; width: 38px; height: 38px; display: grid; place-items: center; overflow: hidden; border-radius: 8px; font-size: .5rem; font-weight: 800; line-height: 1.05; text-align: center; }
+.pickup-mark--nyt { background: #111; color: #fff; font-family: var(--font-serif), serif; font-weight: 700; letter-spacing: -.02em; }
+.pickup-mark--cnn { background: #cc0000; color: #fff; font-size: .72rem; letter-spacing: -.03em; }
+.pickup-mark--vpitv { background: #12326b; color: #fff; font-size: .58rem; }
+.pickup-mark--generic { background: var(--paper); color: var(--ink-soft); border: 1px solid var(--line); }
+
+.pickup-meta { display: flex; flex-direction: column; min-width: 0; }
+.pickup-meta strong { font-size: .8rem; }
+.pickup-meta small { color: var(--ink-soft); font-size: .7rem; }
+
+@media (max-width: 1060px) {
+  .article-layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .pickups { position: static; }
+}
