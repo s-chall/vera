@@ -11,9 +11,6 @@ import type { Article } from "@/lib/types";
 type FeedTab = "Latest" | "Following";
 const tabs: FeedTab[] = ["Latest", "Following"];
 
-const initials = (alias: string) =>
-  alias.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-
 function filed(at: number | null) {
   if (!at) return "Draft";
   const mins = Math.round((Date.now() - at) / 60000);
@@ -96,10 +93,6 @@ export function NewsFeed() {
 
             return (
               <article className="news-article" key={article.id}>
-                <div className={`news-avatar${author ? ` identity-seal ${author.seal}` : ""}`} aria-hidden="true">
-                  {author ? initials(author.alias) : "··"}
-                </div>
-
                 <div className="news-article-content">
                   <header className="news-article-header">
                     <div className="news-byline">
