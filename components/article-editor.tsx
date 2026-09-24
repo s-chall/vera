@@ -265,6 +265,12 @@ export function ArticleEditor() {
 
   const publishArticle = async () => {
     if (publishing) return;
+    if (!vera.canPublish) {
+      setPublishOpen(false);
+      setFailed(true);
+      setNotice("Only a verified journalist account can publish.");
+      return;
+    }
     const body = readBody(bodyRef.current);
 
     if (!title.trim()) {

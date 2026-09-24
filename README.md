@@ -213,15 +213,31 @@ VERA_TEST_CEDULA=
 
 Both suites skip that check when it is absent. Do not commit a real cédula.
 
+### Who can publish
+
+Only a **verified journalist**. Enforced by `articles_insert_verified`, which
+calls `can_publish()`, so it holds against the API and not just the browser.
+Media organisations and funders cannot file reports, and neither can a
+journalist who has not cleared the CNP register.
+
+Editing and withdrawing your own work stays separate, so someone whose
+verification is later removed can still take their reporting down.
+
 ### Article visibility
 
 Journalist-authored work defaults to `media_only`; everything else is `members`.
 Media organisations and admins read everything.
 
-**A funder currently sees an empty feed**, because every seeded reporter is a
-journalist. There is a test pinning that so it can't drift. If funders should
-read the reporting they fund, change the policy in
-`202609240006_article_visibility.sql`.
+**Nobody except media organisations and admins can read anything.** Only verified
+journalists can publish, their work defaults to `media_only`, and the read policy
+admits media organisations and admins. So journalists cannot read each other and
+funders see nothing at all, ever. The `members` visibility class is now
+unreachable, since nothing can create an article that carries it.
+
+There are tests pinning this so it cannot drift unnoticed, but it needs a
+decision: either let journalists read each other, or collapse the distinction and
+let every account read every published article. One line in
+`202609240006_article_visibility.sql` either way.
 
 ---
 

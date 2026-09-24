@@ -57,6 +57,7 @@ type Vera = State & {
     accountType: AccountType; bio?: string;
   }) => Promise<{ confirmationRequired: boolean }>;
   needsVerification: boolean;
+  canPublish: boolean;
   fundingConfirmed: boolean;
   isMediaDomain: (email: string) => Promise<boolean>;
   submitVerification: (cnpNumber: string, cedula: string) => Promise<void>;
@@ -262,6 +263,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       // Verification is mandatory, so a pending or rejected journalist is held
       // just as firmly as one who has not submitted anything.
       needsVerification: state.accountType === "journalist" && !me?.verified,
+      // mirrors can_publish() in the database; the policy is the real gate
+      canPublish: state.accountType === "journalist" && Boolean(me?.verified),
       notice,
       busy,
 

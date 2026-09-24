@@ -152,20 +152,22 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   const authorSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: jrToken });
   check('the author can read their own', authorSees.data?.length === 1, JSON.stringify(authorSees.data));
 
-  // A media organisation's own piece is members-visible, so everyone sees it.
-  const orgPost = await api('/rest/v1/articles', { token: org.token, method: 'POST', prefer: 'return=representation',
+  // Publishing is restricted to verified journalists.
+  const orgPost = await api('/rest/v1/articles', { token: org.token, method: 'POST',
     body: { journalist_id: orgProfile.id, slug: uniq('desk'), title: 'From the desk',
             dek: 'Open to members.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
-  check('media_org work defaults to members', orgPost.data?.[0]?.visibility === 'members', orgPost.data?.[0]?.visibility);
+  check('a media organisation cannot publish', orgPost.status >= 400, orgPost.status);
 
-  const funderSeesOrg = await api('/rest/v1/articles?select=slug&slug=eq.' + orgPost.data?.[0]?.slug, { token: funder.token });
-  check('a funder sees members-visible work', funderSeesOrg.data?.length === 1, JSON.stringify(funderSeesOrg.data));
+  const funderPost = await api('/rest/v1/articles', { token: funder.token, method: 'POST',
+    body: { journalist_id: funderProfile.id, slug: uniq('backer'), title: 'From a funder',
+            dek: 'No.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
+  check('a funder cannot publish', funderPost.status >= 400, funderPost.status);
 
-  // Consequence of the current rules, stated as a test so it cannot drift
-  // unnoticed: every seeded reporter is a journalist, so a funder's feed is empty.
+  // Consequence worth pinning: every publisher is now a verified journalist, so
+  // everything is media_only and a funder can never see any article at all.
   const funderFeed = await api('/rest/v1/articles?select=slug', { token: funder.token });
-  check('funders currently see only non-journalist work', funderFeed.data?.length === 1,
-    'funder sees ' + funderFeed.data?.length + ' of ' + 6);
+  check('a funder sees no articles at all under the current rules',
+    funderFeed.data?.length === 0, 'funder sees ' + funderFeed.data?.length);
 
   report();
 })().catch((e) => { console.error(e); report(); });

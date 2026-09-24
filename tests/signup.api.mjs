@@ -133,11 +133,23 @@ const profileOf = async (token, userId) => {
   const followsB = await api('/rest/v1/follows?select=*', { token: b.token });
   check('one account cannot see another\'s follows', followsB.data?.length === 0, JSON.stringify(followsB.data));
 
+  // Publishing needs a verified journalist account, so a fresh signup is refused.
   const post = await api('/rest/v1/articles', { token: a.token, method: 'POST', prefer: 'return=representation',
     body: { journalist_id: mine.id, slug: 'members-only-check-' + Date.now().toString(36), title: 'Members only check',
             dek: 'From the suite.', body: ['One paragraph.'], art: 'paper', category: 'Filed', read_mins: 1,
             published_at: new Date().toISOString() } });
-  check('a member can publish', post.status === 201, post.status + ' ' + JSON.stringify(post.data).slice(0, 120));
+  check('an unverified account cannot publish', post.status === 403, post.status + ' ' + JSON.stringify(post.data).slice(0, 110));
+
+  // The seeded, verified journalist can.
+  const verified = await password('journalist@vera.test', 'vera-demo-2026');
+  const verifiedId = (await api('/rest/v1/journalists?select=id', { token: verified.data.access_token })).data?.[0]?.id;
+  const okPost = await api('/rest/v1/articles', { token: verified.data.access_token, method: 'POST', prefer: 'return=representation',
+    body: { journalist_id: verifiedId, slug: 'verified-check-' + Date.now().toString(36), title: 'Verified check',
+            dek: 'From the suite.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
+  check('a verified journalist can publish', okPost.status === 201, okPost.status + ' ' + JSON.stringify(okPost.data).slice(0, 110));
+  if (okPost.data?.[0]?.id) {
+    await api('/rest/v1/articles?id=eq.' + okPost.data[0].id, { token: verified.data.access_token, method: 'DELETE' });
+  }
 
   const forge = await api('/rest/v1/articles', { token: b.token, method: 'POST',
     body: { journalist_id: mineB.id === mine.id ? mineB.id : mine.id, slug: 'forge-' + Date.now().toString(36), title: 'Forged', read_mins: 1 } });
@@ -147,7 +159,6 @@ const profileOf = async (token, userId) => {
   check('published work still invisible to non-members',
     anonArticleAfter.status >= 400 || anonArticleAfter.data?.length === 0, 'n=' + anonArticleAfter.data?.length);
 
-  if (post.data?.[0]?.id) await api('/rest/v1/articles?id=eq.' + post.data[0].id, { token: a.token, method: 'DELETE' });
   report();
 })().catch((e) => { console.error(e); report(); });
 

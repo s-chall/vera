@@ -90,11 +90,13 @@ export function JournalistProfile() {
         </article>
       </section>
 
-      {isFunder ? null : (
+      {isFunder || !vera.canPublish ? null : (
         <section className="profile-work">
           <div className="profile-work-heading">
             <div><h2>Your articles</h2></div>
-            <Link className="profile-new-article" href="/write"><FilePenLine aria-hidden="true" />New article</Link>
+            {vera.canPublish
+              ? <Link className="profile-new-article" href="/write"><FilePenLine aria-hidden="true" />New article</Link>
+              : null}
           </div>
           <div className="profile-tabs" role="tablist" aria-label="Article status">
             <button type="button" role="tab" aria-selected={tab === "published"}
