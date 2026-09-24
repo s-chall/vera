@@ -73,11 +73,13 @@ Deno.serve(async (request) => {
     if (finalizedEpochError) throw finalizedEpochError;
     if (epoch.status !== "ready") throw new Error(`Epoch ${epoch.id} is not ready`);
 
-    const nextOpen = new Date(epoch.closes_at);
-    const nextClose = new Date(nextOpen.getTime() + 14 * 24 * 60 * 60 * 1000);
+    // Keep the exact DB closes_at as the next opens_at so half-open ranges abut
+    // without overlap (JS Date would truncate sub-millisecond precision).
+    const nextOpen = epoch.closes_at;
+    const nextClose = new Date(Date.parse(epoch.closes_at) + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { error: nextEpochError } = await supabase.from("payout_epochs").upsert({
-      opens_at: nextOpen.toISOString(),
-      closes_at: nextClose.toISOString(),
+      opens_at: nextOpen,
+      closes_at: nextClose,
       view_weight: 1,
       like_weight: 4,
       formula_version: epoch.formula_version,
@@ -137,6 +139,11 @@ Deno.serve(async (request) => {
     return Response.json({ ok: true, epochId: epoch.id, txHash: submission.txHash });
   } catch (error) {
     console.error(error);
-    return Response.json({ ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+      ? String((error as { message: unknown }).message)
+      : "Unknown error";
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
 });

@@ -1,0 +1,4 @@
+bitcoin/*.wif
+bitcoin/pool.key.json
+signet/*.wif
+signet/pool.key.json

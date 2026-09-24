@@ -1,0 +1,11 @@
+{
+  "network": "mainnet",
+  "address": "bc1qs2hd3hjfc387yd550h37ceqk5gd02269yemj8a",
+  "scriptType": "wpkh",
+  "custody": "local-dev-key",
+  "createdAt": "2026-09-24T21:06:18.337Z",
+  "explorerUrl": "https://mempool.space/address/bc1qs2hd3hjfc387yd550h37ceqk5gd02269yemj8a",
+  "watch": {
+    "mempoolApi": "https://mempool.space/api/address/bc1qs2hd3hjfc387yd550h37ceqk5gd02269yemj8a"
+  }
+}

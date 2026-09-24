@@ -1,0 +1,23 @@
+services:
+  bitcoind-signet:
+    image: bitcoin/bitcoin:27.1
+    container_name: vera-bitcoind-signet
+    restart: unless-stopped
+    command:
+      - -signet
+      - -server
+      - -txindex
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -rpcuser=vera
+      - -rpcpassword=vera
+      - -rpcport=38332
+      - -deprecatedrpc=create_bdb
+    ports:
+      - "38332:38332"
+      - "38333:38333"
+    volumes:
+      - signet-data:/home/bitcoin/.bitcoin
+
+volumes:
+  signet-data:

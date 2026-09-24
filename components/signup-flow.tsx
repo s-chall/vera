@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Building2, Check, Eye, EyeOff, FileCheck2, MailCheck, ShieldCheck, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { VeraMark } from "@/components/vera-mark";
 
 type Role = "journalist" | "activist" | "media";
 
@@ -51,7 +52,15 @@ export function SignupFlow() {
     <main id="main-content" className="signup-page">
       <section className="signup-panel">
         <div className="signup-form-wrap">
-          <div className="signup-simple-header"><Link className="signup-wordmark" href="/">Vera<span aria-hidden="true">.</span></Link><button type="button">Sign in</button></div>
+          <div className="signup-simple-header">
+            <Link className="signup-wordmark" href="/" aria-label="Vera home">
+              <VeraMark className="wordmark-mark" />
+              <span className="wordmark-text">
+                Vera<span aria-hidden="true">.</span>
+              </span>
+            </Link>
+            <button type="button">Sign in</button>
+          </div>
           <header className="signup-progress"><span>Step {step} of {totalSteps}</span><div aria-hidden="true"><i style={{ width: `${(step / totalSteps) * 100}%` }} /></div></header>
           <form onSubmit={submit}>
             {step === 1 ? <AccountStep role={role} setRole={setRole} showPassword={showPassword} setShowPassword={setShowPassword} values={values} update={update} /> : null}

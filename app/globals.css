@@ -30,8 +30,9 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 
 .site-header { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 236px; border-right: 1px solid rgba(217,211,200,.9); background: rgba(244,240,231,.96); backdrop-filter: blur(18px); }
 .header-inner { height: 100%; padding: 28px 18px 22px; display: flex; flex-direction: column; align-items: stretch; }
-.wordmark { font: 700 31px/1 var(--font-serif), serif; letter-spacing: -.04em; }
-.wordmark span { color: var(--orange); }
+.wordmark { display: inline-flex; align-items: center; gap: 10px; font: 700 31px/1 var(--font-serif), serif; letter-spacing: -.04em; }
+.wordmark-mark { width: 34px; height: 38px; flex-shrink: 0; }
+.wordmark-text span { color: var(--orange); }
 .desktop-nav { margin-top: 48px; display: flex; flex-direction: column; gap: 5px; }
 .desktop-nav a { min-height: 48px; padding: 0 13px; display: flex; align-items: center; gap: 13px; border-radius: 9px; color: var(--ink-soft); font-size: .91rem; font-weight: 600; transition: color 160ms ease, background 160ms ease; }
 .desktop-nav a svg { width: 20px; height: 20px; }
@@ -510,6 +511,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 @media (max-width: 900px) {
   .site-header { position: sticky; inset: auto; top: 0; width: 100%; height: 72px; border-right: 0; border-bottom: 1px solid var(--line); }
   .header-inner { width: calc(100% - 48px); height: 72px; margin: auto; padding: 0; flex-direction: row; align-items: center; justify-content: space-between; }
+  .wordmark-mark { width: 28px; height: 31px; }
   .desktop-nav { margin: 0; flex-direction: row; }
   .desktop-nav a { min-height: 44px; padding: 0 10px; box-shadow: none !important; }
   .desktop-nav a svg { display: none; }
@@ -614,9 +616,14 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .fund-balance > strong { font: 640 clamp(4.3rem, 8vw, 7rem)/.86 var(--font-serif), serif; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .fund-balance > strong small { font: 650 .19em/1 var(--font-sans), sans-serif; letter-spacing: .04em; }
 .fund-balance > p { margin: 18px 0 0; color: #cbd3d7; }
+.fund-balance-meta { margin: 14px 0 0; font-size: .72rem; }
+.fund-balance-meta a { color: var(--orange); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.fund-deposits { margin: 28px 0 0; padding: 18px 0 0; border-top: 1px solid rgba(255,255,255,.14); list-style: none; display: grid; gap: 8px; }
+.fund-deposits a { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #e8ecef; font-size: .74rem; }
+.fund-deposits a span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #9aa4ab; }
+.fund-deposits a:hover { color: white; }
 .fund-donate { padding: clamp(26px, 4vw, 40px); background: var(--surface); box-shadow: 7px 7px 0 var(--ink); }
-.fund-donate header > span { color: var(--orange-dark); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
-.fund-donate h2 { margin: 7px 0 0; font: 640 clamp(2rem, 4vw, 2.8rem)/1 var(--font-serif), serif; letter-spacing: -.035em; }
+.fund-donate h2 { margin: 0; font: 640 clamp(2rem, 4vw, 2.8rem)/1 var(--font-serif), serif; letter-spacing: -.035em; }
 .fund-presets { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .fund-presets button { min-height: 54px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: white; font-size: .77rem; font-weight: 750; transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease; }
 .fund-presets button span { color: var(--ink-soft); font-size: .67rem; font-weight: 600; }
@@ -639,21 +646,25 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .fund-submit:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 .fund-invoice { text-align: center; }
 .fund-invoice header p { margin: 10px auto 0; color: var(--ink-soft); font-size: .76rem; }
-.fund-qr { width: 180px; height: 180px; margin: 26px auto 20px; display: grid; place-items: center; border: 12px solid white; border-radius: 10px; color: white; background: repeating-conic-gradient(var(--ink) 0 25%, white 0 50%) 0/18px 18px; box-shadow: 0 0 0 1px var(--line); }
-.fund-qr svg { width: 72px; height: 72px; padding: 14px; border-radius: 50%; color: var(--orange); background: var(--ink); }
 .fund-address { width: 100%; min-height: 52px; padding: 0 13px; display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: white; }
 .fund-address span { min-width: 0; flex: 1; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
 .fund-copy-status { margin: 6px 0 16px; color: var(--green); font-size: .68rem; min-height: 1.1em; }
+.fund-copy-status a { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); font-weight: 700; }
+.fund-form-error { margin: 0 0 14px; color: #b42318; font-size: .78rem; font-weight: 650; }
+.fund-banner { margin: 0 0 18px; padding: 12px 14px; border: 1px solid #c6e6c3; border-radius: 8px; background: #f3fbf2; color: var(--green); font-size: .78rem; font-weight: 650; }
+.fund-qr { width: 180px; height: 180px; margin: 26px auto 20px; display: grid; place-items: center; border: 12px solid white; border-radius: 10px; background: white; box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.fund-qr img { width: 100%; height: 100%; display: block; }
+.fund-wallet-link { margin-bottom: 14px; text-decoration: none; }
 .fund-reset { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; border: 0; color: var(--blue); background: transparent; font-size: .75rem; font-weight: 750; }
 
 @media (max-width: 900px) {
-  .fund-page { margin-left: 0; }
-  .fund-shell { width: min(760px, calc(100% - 48px)); padding-top: 56px; }
+  .fund-page { margin-left: 0; padding-bottom: calc(var(--nav-height) + 24px); }
+  .fund-shell { width: min(760px, calc(100% - 48px)); padding-top: 56px; padding-bottom: 48px; }
   .fund-balance { min-height: 340px; }
 }
 
 @media (max-width: 680px) {
-  .fund-shell { width: calc(100% - 32px); padding: 38px 0 52px; }
+  .fund-shell { width: calc(100% - 32px); padding: 38px 0 calc(var(--nav-height) + 48px); }
   .fund-intro { margin-bottom: 30px; }
   .fund-intro h1 { font-size: clamp(3.6rem, 18vw, 5rem); }
   .fund-main-grid { gap: 18px; }
@@ -697,8 +708,8 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 /* Protected account creation */
 .signup-page { min-height: 100dvh; background: var(--surface); }
 .signup-context { min-height: 100dvh; padding: clamp(30px,5vw,72px); display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: var(--ink); }
-.signup-wordmark { width: fit-content; font: 700 2rem/1 var(--font-serif), serif; letter-spacing: -.04em; }
-.signup-wordmark span { color: var(--orange); }
+.signup-wordmark { width: fit-content; display: inline-flex; align-items: center; gap: 10px; font: 700 2rem/1 var(--font-serif), serif; letter-spacing: -.04em; }
+.signup-wordmark .wordmark-text span { color: var(--orange); }
 .signup-context > div { max-width: 470px; }
 .signup-shield { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid #52616c; border-radius: 50%; color: var(--orange); }
 .signup-context h1 { margin: 34px 0 20px; font: 620 clamp(3.5rem,6vw,6.6rem)/.88 var(--font-serif), serif; letter-spacing: -.055em; }

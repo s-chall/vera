@@ -6,18 +6,40 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status",
+    "db:test": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/tests/payout_engine.sql",
+    "db:seed-payout": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/seeds/local_payout_epoch.sql",
+    "mock:adapter": "node supabase/mocks/contract-adapter.mjs",
+    "functions:serve": "supabase functions serve finalize-payout --env-file supabase/.env.local --no-verify-jwt",
+    "signet:init": "BITCOIN_NETWORK=signet node scripts/bitcoin-init-pool.mjs",
+    "signet:sync": "BITCOIN_NETWORK=signet node scripts/bitcoin-sync-pool.mjs",
+    "signet:import-watch": "node scripts/signet-import-watch.mjs",
+    "signet:up": "docker compose -f docker-compose.signet.yml up -d",
+    "signet:down": "docker compose -f docker-compose.signet.yml down",
+    "signet:logs": "docker compose -f docker-compose.signet.yml logs -f bitcoind-signet",
+    "bitcoin:init": "node scripts/bitcoin-init-pool.mjs",
+    "bitcoin:sync": "node scripts/bitcoin-sync-pool.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource-variable/newsreader": "^5.2.8",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/btc-signer": "^2.4.1",
     "lucide-react": "1.48.0",
     "next": "16.3.6",
+    "qrcode": "^1.5.4",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "stripe": "^22.6.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.9.0"
