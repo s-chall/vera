@@ -1,0 +1,11 @@
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, Bookmark, Clock3, ShieldCheck } from "lucide-react";
+import { leadStory } from "@/lib/content";
+import { StatusBadge } from "@/components/status-badge";
+
+export const metadata = { title: leadStory.title };
+
+export default function ArticlePage() {
+  return <main id="main-content" className="article-page"><div className="article-header"><Link href="/" className="back-link"><ArrowLeft aria-hidden="true"/>Back to briefing</Link><button className="secondary-button"><Bookmark aria-hidden="true"/>Save</button></div><article><header><div className="article-byline"><span className="author-dot"/><strong>{leadStory.author}</strong><span>{leadStory.filed}</span><span><Clock3 aria-hidden="true"/>{leadStory.readTime}</span></div><h1>{leadStory.title}</h1><p className="article-dek">{leadStory.dek}</p><StatusBadge>Reporter privately verified</StatusBadge></header><figure><Image src={leadStory.articleImage} alt="Residents and a reporter reviewing a map beside a rural road" priority/><figcaption>Residents gather near the county line. Identifying details were separated from source files.</figcaption></figure><aside className="source-protection"><ShieldCheck aria-hidden="true"/><p><strong>Source protection is active.</strong> Documents are encrypted and identities are stored separately from the published article.</p></aside><div className="article-body"><p>At the edge of the state archive, a paper map still carries the names. In the digital record, they are gone. Over six months, Northstar reviewed planning files and spoke with families whose addresses vanished without notice.</p><p>The result is not simply a cartographic error. It is a story about services, representation, and who is allowed to remain visible.</p><h2>The boundary that moved overnight</h2><p>Residents first noticed the change when emergency service records stopped recognizing their addresses. What appeared to be a software problem traced back to a sequence of administrative decisions no agency would claim.</p><p>Vera reviewed the underlying documents, confirmed the timeline with multiple sources, and removed identifying metadata before publication.</p></div></article></main>;
+}
