@@ -63,7 +63,9 @@ To make one on a hosted project, sign up normally and set `is_admin` with
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
 - **Journalist** — two steps, then a CNP number and cédula are checked live
-  against cnpven.org straight after signing in. The prompt is skippable.
+  against cnpven.org straight after signing in. **Mandatory**: the account
+  cannot reach any page until the register confirms it. Signing out is the only
+  way past that screen.
 - **Media organisation** — needs an email at an allowlisted outlet. Try
   `you@nytimes.com`. A `@gmail.com` address is rejected as you type, and again
   in the signup trigger so the check cannot be skipped from the client.
@@ -189,6 +191,12 @@ never stored, logged, or returned to the browser.
 
 An admin can still verify by hand through `set_verified()` for anyone the
 register cannot settle.
+
+Verification is mandatory, so an inconclusive result holds the account until a
+reviewer settles it. **A cnpven.org outage therefore blocks every new journalist
+account**, and existing unverified ones. That is the deliberate trade for not
+letting an unverified byline publish; if it matters, the queue is the release
+valve and someone has to watch it.
 
 **The cost, stated plainly:** this sends a cédula to cnpven.org from the server,
 so their logs learn which cédulas are registering with Vera. That is a real

@@ -93,7 +93,11 @@ const finish = () => {
       (await page.isVisible('#cedula')) && (await page.locator('input[type=file]').count()) === 0);
     check('prompt says the cédula is not stored',
       (await page.textContent('.auth-card'))?.includes('never stored'), '');
-    check('verification can be skipped', await page.isVisible('.auth-alt button'));
+    check('verification cannot be skipped',
+      !(await page.textContent('.auth-card'))?.toLowerCase().includes('do this later'));
+    check('signing out is the only way past it',
+      (await page.textContent('.auth-alt button'))?.includes('Sign out'),
+      await page.textContent('.auth-alt button'));
 
     await page.fill('#cnp', '12345');
     await page.fill('#cedula', 'nonsense');
@@ -110,6 +114,18 @@ const finish = () => {
     check('the register refuses an unknown pair',
       (await page.textContent('.auth-message'))?.includes('do not match'), await page.textContent('.auth-message'));
     check('still prompted after a refusal', await page.isVisible('#cnp'));
+    check('a refusal is explained',
+      (await page.textContent('.auth-card'))?.includes('not recognised')
+      || (await page.textContent('.auth-card'))?.includes('did not match'),
+      (await page.textContent('h1')));
+
+    // an unverified journalist cannot reach the app by navigating around it
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    check('an unverified journalist cannot reach the news page', await page.isVisible('#cnp'), page.url());
+    await page.goto(BASE + '/write', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    check('an unverified journalist cannot reach the editor', await page.isVisible('#cnp'), page.url());
 
     const realCnp = process.env.VERA_TEST_CNP;
     const realCedula = process.env.VERA_TEST_CEDULA;

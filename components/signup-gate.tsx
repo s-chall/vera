@@ -13,7 +13,6 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [skippedVerification, setSkipped] = useState(false);
 
   if (!vera.ready) {
     return <main id="main-content" className="auth-screen"><section className="auth-card"><h1>Opening Vera</h1><p>Checking your session.</p></section></main>;
@@ -32,9 +31,8 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
   }
 
   if (vera.signedIn) {
-    if (vera.needsVerification && !skippedVerification) {
-      return <VerificationPrompt onSkip={() => setSkipped(true)} />;
-    }
+    // Mandatory: a journalist stays here until the register confirms them.
+    if (vera.needsVerification) return <VerificationPrompt />;
     return <>{children}</>;
   }
   if (pathname === "/signup") return <>{children}</>;

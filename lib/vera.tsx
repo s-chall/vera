@@ -242,8 +242,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       ...state,
       me,
       isAdmin: state.isAdmin,
-      needsVerification:
-        state.accountType === "journalist" && state.verification === null && !me?.verified,
+      // Verification is mandatory, so a pending or rejected journalist is held
+      // just as firmly as one who has not submitted anything.
+      needsVerification: state.accountType === "journalist" && !me?.verified,
       notice,
       busy,
 
@@ -328,12 +329,15 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (error) {
-          // the function returns the reason in the body on a 4xx
+          // The function returns the reason in the body on a 4xx. A rejection
+          // is recorded server-side, so reload before surfacing it: the screen
+          // needs to know the request now exists and was refused.
           let detail = "";
           const response = (error as { context?: Response }).context;
           if (response) {
             try { detail = (await response.json())?.message ?? ""; } catch { /* ignore */ }
           }
+          await load();
           throw new Error(detail || `Could not verify: ${error.message}`);
         }
 
