@@ -1,79 +1,142 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, CheckCircle2, ChevronRight, Clock3, FilePenLine, Settings2 } from "lucide-react";
-import type { ChangeEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, ChevronRight, Clock3, FilePenLine, LogOut, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { useVera } from "@/lib/vera";
+import type { Article } from "@/lib/types";
 
-const published = [
-  { title: "The public contracts nobody was meant to compare", date: "Sep 14", views: "24,381", likes: "1,204", earned: "0.00642 BTC" },
-  { title: "A river authority’s missing inspection records", date: "Aug 28", views: "18,704", likes: "892", earned: "0.00489 BTC" },
-  { title: "Inside the towns being erased from the official map", date: "Aug 02", views: "11,906", likes: "611", earned: "0.00318 BTC" },
-];
+const initials = (alias: string) =>
+  alias.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-const drafts = [
-  { title: "Untitled investigation", updated: "Edited 18 minutes ago" },
-  { title: "Notes from the northern water hearing", updated: "Edited yesterday" },
-];
+const TYPE_LABEL = {
+  journalist: "Journalist",
+  media_org: "Media organisation",
+  funder: "Funder",
+} as const;
+
+function when(at: number | null) {
+  if (!at) return "Draft";
+  return new Date(at).toLocaleDateString([], { month: "short", day: "numeric" });
+}
 
 export function JournalistProfile() {
+  const vera = useVera();
   const [tab, setTab] = useState<"published" | "drafts">("published");
-  const [photo, setPhoto] = useState<string | null>(null);
-  const photoInput = useRef<HTMLInputElement>(null);
+  const me = vera.me;
 
-  useEffect(() => () => { if (photo) URL.revokeObjectURL(photo); }, [photo]);
+  if (!vera.ready || !me) {
+    return <main id="main-content" className="page-shell profile-page"><p>Loading your workspace…</p></main>;
+  }
 
-  const changePhoto = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (photo) URL.revokeObjectURL(photo);
-    setPhoto(URL.createObjectURL(file));
-    event.target.value = "";
-  };
+  const mine = vera.articles.filter((a) => a.journalistId === vera.meId);
+  const published = mine.filter((a) => a.publishedAt !== null);
+  const drafts = mine.filter((a) => a.publishedAt === null);
+  const shown: Article[] = tab === "published" ? published : drafts;
+  const isFunder = vera.accountType === "funder";
 
   return (
     <main id="main-content" className="page-shell profile-page profile-page--journalist">
       <header className="journalist-profile-header">
         <div className="journalist-photo-wrap">
-          {photo ? <img className="journalist-photo" src={photo} alt="Your profile preview" /> : <span className="journalist-photo-placeholder" aria-hidden="true">QC</span>}
-          <button className="journalist-photo-button" type="button" aria-label="Upload profile photo" onClick={() => photoInput.current?.click()}><Camera aria-hidden="true" /></button>
-          <input className="writer-visually-hidden" ref={photoInput} type="file" accept="image/*" tabIndex={-1} onChange={changePhoto} />
+          <span className={`journalist-photo-placeholder identity-seal ${me.seal}`} aria-hidden="true">
+            {initials(me.alias)}
+          </span>
         </div>
         <div className="journalist-profile-copy">
-          <div className="journalist-name-line"><h1>Quiet Current</h1><span><CheckCircle2 aria-hidden="true" />Verified journalist</span></div>
-          <p>Reporting on public institutions, environmental records, and the people affected when accountability disappears.</p>
-          <span className="journalist-handle">@quietcurrent</span>
+          <div className="journalist-name-line">
+            <h1>{me.alias}</h1>
+            {/* Verification is a journalist concept. A media organisation or
+                funder is neither verified nor unverified, so it says nothing. */}
+            {me.verified
+              ? <span><CheckCircle2 aria-hidden="true" />Verified {TYPE_LABEL[vera.accountType ?? "journalist"].toLowerCase()}</span>
+              : vera.accountType === "journalist"
+                ? <span className="journalist-unverified"><ShieldAlert aria-hidden="true" />Not verified</span>
+                : null}
+          </div>
+          <p>{me.bio || "No bio yet."}</p>
+          <span className="journalist-handle">
+            {TYPE_LABEL[vera.accountType ?? "journalist"]}
+            {me.beat ? ` · ${me.beat}` : ""}
+            {me.region ? ` · ${me.region}` : ""}
+          </span>
         </div>
-        <button className="secondary-button journalist-settings" type="button"><Settings2 aria-hidden="true" />Settings</button>
+        <button className="secondary-button journalist-settings" type="button"
+          disabled={vera.busy} onClick={() => void vera.signOut()}>
+          <LogOut aria-hidden="true" />Sign out
+        </button>
       </header>
 
-      <section className="profile-summary" aria-label="Journalist summary">
+      <section className="profile-summary" aria-label="Account summary">
         <article className="profile-wallet-compact">
-          <div className="profile-wallet-value"><span>Bitcoin balance</span><strong>0.01842 BTC</strong><small>≈ $1,212.40</small></div>
-          <div className="profile-wallet-actions"><button type="button">Withdraw</button><button type="button">Payout history</button></div>
+          <div className="profile-wallet-value">
+            <span>{isFunder ? "Contributions" : "Earned"}</span>
+            <strong>—</strong>
+            <small>
+              {isFunder
+                ? vera.fundingConfirmed
+                  ? "Your contribution is recorded. Payout accounting starts with the first epoch."
+                  : "No contribution recorded yet, so this account is not active."
+                : "No payout epoch has run. There is no wallet attached to this account."}
+            </small>
+          </div>
+        </article>
+        <article className="profile-wallet-compact">
+          <div className="profile-wallet-value">
+            <span>Signed in as</span>
+            <strong className="profile-email">{vera.email}</strong>
+            <small>Stored in the auth system, never shown on your byline.</small>
+          </div>
         </article>
       </section>
 
-      <section className="profile-work">
-        <div className="profile-work-heading">
-          <div><h2>Your articles</h2></div>
-          <Link className="profile-new-article" href="/write"><FilePenLine aria-hidden="true" />New article</Link>
-        </div>
-        <div className="profile-tabs" role="tablist" aria-label="Article status">
-          <button type="button" role="tab" aria-selected={tab === "published"} onClick={() => setTab("published")}>Published <span>3</span></button>
-          <button type="button" role="tab" aria-selected={tab === "drafts"} onClick={() => setTab("drafts")}>Drafts <span>2</span></button>
-        </div>
+      {isFunder ? null : (
+        <section className="profile-work">
+          <div className="profile-work-heading">
+            <div><h2>Your articles</h2></div>
+            <Link className="profile-new-article" href="/write"><FilePenLine aria-hidden="true" />New article</Link>
+          </div>
+          <div className="profile-tabs" role="tablist" aria-label="Article status">
+            <button type="button" role="tab" aria-selected={tab === "published"}
+              onClick={() => setTab("published")}>Published <span>{published.length}</span></button>
+            <button type="button" role="tab" aria-selected={tab === "drafts"}
+              onClick={() => setTab("drafts")}>Drafts <span>{drafts.length}</span></button>
+          </div>
 
-        {tab === "published" ? (
-          <div className="profile-article-list" role="tabpanel" aria-label="Published articles">
-            {published.map((article) => <Link className="profile-article-row" href="/articles/inside-the-towns-being-erased" key={article.title}><div><span>Published {article.date}</span><h3>{article.title}</h3><p>{article.views} views <i aria-hidden="true">·</i> {article.likes} likes</p></div><div className="profile-article-earnings"><span>Earned</span><strong>{article.earned}</strong></div><ChevronRight aria-hidden="true" /></Link>)}
-          </div>
-        ) : (
-          <div className="profile-article-list" role="tabpanel" aria-label="Draft articles">
-            {drafts.map((article) => <Link className="profile-article-row profile-draft-row" href="/write" key={article.title}><div><span><Clock3 aria-hidden="true" />{article.updated}</span><h3>{article.title}</h3><p>Private draft</p></div><ChevronRight aria-hidden="true" /></Link>)}
-          </div>
-        )}
-      </section>
+          {shown.length ? (
+            <div className="profile-article-list" role="tabpanel" aria-label={`${tab} articles`}>
+              {shown.map((article) => (
+                <Link className={`profile-article-row${tab === "drafts" ? " profile-draft-row" : ""}`}
+                  href={`/articles/${article.slug}`} key={article.id}>
+                  <div>
+                    <span>
+                      {tab === "drafts" ? <><Clock3 aria-hidden="true" />Not published</> : `Published ${when(article.publishedAt)}`}
+                    </span>
+                    <h3>{article.title}</h3>
+                    <p>
+                      {article.category} <i aria-hidden="true">·</i> {article.readMins} min read
+                      {article.visibility === "media_only"
+                        ? <> <i aria-hidden="true">·</i> Media organisations only</>
+                        : null}
+                    </p>
+                  </div>
+                  <ChevronRight aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="feed-empty" role="tabpanel">
+              <h2>{tab === "published" ? "Nothing published yet" : "No drafts"}</h2>
+              <p>
+                {tab === "published"
+                  ? "Your reporting will appear here once you publish it."
+                  : "Work you save without publishing will appear here."}
+              </p>
+              <Link className="button button-accent" href="/write">Start writing</Link>
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 }

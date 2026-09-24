@@ -30,13 +30,14 @@ type State = {
   isAdmin: boolean;
   accountType: AccountType | null;
   verification: VerificationStatus | null;
+  fundingConfirmed: boolean;
   fatal: string | null;
 };
 
 const EMPTY: State = {
   ready: false, signedIn: false, meId: null, email: null,
   bylines: {}, articles: [], following: [], isAdmin: false,
-  accountType: null, verification: null, fatal: null,
+  accountType: null, verification: null, fundingConfirmed: false, fatal: null,
 };
 
 type Vera = State & {
@@ -55,6 +56,7 @@ type Vera = State & {
     accountType: AccountType; bio?: string;
   }) => Promise<{ confirmationRequired: boolean }>;
   needsVerification: boolean;
+  fundingConfirmed: boolean;
   isMediaDomain: (email: string) => Promise<boolean>;
   submitVerification: (cnpNumber: string, cedula: string) => Promise<void>;
   pendingVerifications: () => Promise<PendingVerification[]>;
@@ -159,7 +161,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
 
     const [mineRes, followRes] = await Promise.all([
       db.from("journalists")
-        .select("id, is_admin, account_type").eq("owner_user_id", session.user.id).maybeSingle(),
+        .select("id, is_admin, account_type, funding_confirmed_at")
+        .eq("owner_user_id", session.user.id).maybeSingle(),
       db.from("follows").select("author_id"),
     ]);
 
@@ -172,7 +175,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const mine = mineRes.data as { id: string; is_admin: boolean; account_type: AccountType };
+    const mine = mineRes.data as {
+      id: string; is_admin: boolean; account_type: AccountType; funding_confirmed_at: string | null;
+    };
 
     // The alias chosen during signup could not be written without a session.
     try {
@@ -199,6 +204,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       following: ((followRes.data as { author_id: string }[]) || []).map((r) => r.author_id),
       isAdmin: Boolean(mine.is_admin),
       accountType: mine.account_type,
+      fundingConfirmed: Boolean(mine.funding_confirmed_at),
       verification: (verificationRes.data as { status: VerificationStatus } | null)?.status ?? null,
       fatal: null,
     });

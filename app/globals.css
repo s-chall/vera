@@ -881,3 +881,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .review-row p { margin: 0; color: var(--ink-soft); font-size: .8rem; }
 .review-actions { display: flex; gap: 9px; flex-wrap: wrap; }
 .review-doc { color: var(--blue); font-weight: 700; font-size: .82rem; }
+
+.journalist-unverified { color: var(--orange-dark); }
+.journalist-photo-placeholder.identity-seal { display: grid; place-items: center; color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.profile-email { font-size: .95rem; word-break: break-all; }

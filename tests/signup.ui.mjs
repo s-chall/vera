@@ -203,6 +203,46 @@ const finish = () => {
     await context.close();
   }
 
+  // ---------------------------------------------------------- profile page
+  for (const [email, alias, type, hasArticles] of [
+    ['journalist@vera.test', 'Ash Meridian', 'Journalist', true],
+    ['desk@nytimes.com', 'Times Desk', 'Media organisation', true],
+    ['funder@vera.test', 'Quiet Backer', 'Funder', false],
+  ]) {
+    const { context, page } = await fresh();
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#email', { timeout: 15000 });
+    await page.fill('#email', email);
+    await page.fill('#password', 'vera-demo-2026');
+    await page.click('.auth-submit');
+    await page.waitForSelector('.site-header', { timeout: 25000 });
+    await page.goto(BASE + '/profile', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.journalist-profile-header', { timeout: 15000 });
+
+    check(`profile shows the signed-in alias (${type})`,
+      (await page.textContent('.journalist-name-line h1'))?.trim() === alias,
+      await page.textContent('.journalist-name-line h1'));
+    check(`profile shows the account type (${type})`,
+      (await page.textContent('.journalist-handle'))?.includes(type),
+      await page.textContent('.journalist-handle'));
+    check(`profile shows the sign-in email (${type})`,
+      (await page.textContent('.profile-email'))?.trim() === email,
+      await page.textContent('.profile-email'));
+    check(`profile has no dummy BTC balance (${type})`,
+      !(await page.textContent('.profile-summary'))?.includes('BTC'),
+      (await page.textContent('.profile-summary'))?.slice(0, 80));
+    check(`articles section matches the type (${type})`,
+      (await page.isVisible('.profile-work')) === hasArticles);
+    check(`profile offers sign out (${type})`,
+      (await page.textContent('.journalist-settings'))?.includes('Sign out'));
+    if (type !== 'Journalist') {
+      check(`no verification badge for a ${type}`,
+        !(await page.textContent('.journalist-name-line'))?.includes('Not verified'),
+        await page.textContent('.journalist-name-line'));
+    }
+    await context.close();
+  }
+
   // ------------------------------------------- signed in, visiting /signup
   {
     const { context, page } = await fresh();

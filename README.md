@@ -254,11 +254,13 @@ Being explicit, because several screens imply otherwise.
   and ledger row on the Fund page comes from `lib/content.ts`.
 - **Engagement recording.** `engagement_events` has no writer, so the payout
   engine would distribute nothing. Like and comment buttons are inert.
-- **The admin review UI.** The backend is built and tested, but the profile page
-  is upstream's and still shows fixture data, so there is no screen for
-  reviewing verification requests yet.
-- **The feed, editor, profile and fund pages** are upstream components not yet
-  connected to the database.
+- **The admin review UI.** The backend is built and tested, but there is no
+  screen for reviewing verification requests yet.
+- **The feed, editor and fund pages** are upstream components not yet connected
+  to the database. The profile page is wired.
+- **Profile photos and drafts.** The avatar is the account's seal with its
+  initials; there is no photo upload. Nothing writes an unpublished article, so
+  the drafts tab is always empty.
 - Search, bookmarks and image upload.
 
 ### Two known contradictions
