@@ -8,5 +8,5 @@ select a.id, v.outlet, v.slug, v.url, now() - v.ago
     ('CNN',               'cnn',     'https://www.cnn.com/',     interval '19 hours'),
     ('VPItv',             'vpitv',   'https://vpitv.com/',       interval '2 days')
   ) as v(outlet, slug, url, ago)
- where a.slug = 'inside-the-towns-being-erased-from-the-official-map'
+ where a.slug = 'trujillo-reporter-detained-over-fuel-shortage-story'
 on conflict (article_id, outlet_slug) do nothing;

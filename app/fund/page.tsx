@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ReportingFund } from "@/components/reporting-fund";
 
 export const metadata: Metadata = {
-  title: "Total Pool",
+  title: "Funding Pool",
   description: "Contribute Bitcoin to Vera's community-funded reporting pool.",
 };
 

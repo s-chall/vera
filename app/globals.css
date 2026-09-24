@@ -1062,3 +1062,10 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .translate-options button:disabled { opacity: .55; cursor: wait; }
 .translate-ready { position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
 .translate-error { width: 100%; margin: 4px 0 0; color: var(--danger); font-size: .76rem; font-weight: 600; }
+
+/* ---------- press credential on the byline ---------- */
+.article-credential { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.credential-details { margin: 12px 0 0; display: grid; gap: 6px; }
+.credential-details > div { display: flex; gap: 10px; align-items: baseline; }
+.credential-details dt { min-width: 104px; color: var(--ink-soft); font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+.credential-details dd { margin: 0; font-size: .84rem; font-weight: 600; }

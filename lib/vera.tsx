@@ -84,6 +84,7 @@ export function useVera() {
 type BylineRow = {
   id: string; public_alias: string; seal: string; beat: string;
   region: string; bio: string; verified_at: string | null;
+  credential_name: string | null; credential_carnet: string | null; credential_section: string | null;
 };
 type ArticleRow = {
   id: string; slug: string; journalist_id: string; title: string | null; dek: string;
@@ -149,6 +150,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         region: row.region,
         bio: row.bio,
         verified: Boolean(row.verified_at),
+        credentialName: row.credential_name,
+        credentialCarnet: row.credential_carnet,
+        credentialSection: row.credential_section,
         followers: stat ? stat.followers : 0,
         articleCount: stat ? stat.articles : 0,
       };

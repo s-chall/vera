@@ -9,6 +9,9 @@ export type Byline = {
   region: string;
   bio: string;
   verified: boolean;
+  credentialName: string | null;
+  credentialCarnet: string | null;
+  credentialSection: string | null;
   followers: number;
   articleCount: number;
 };

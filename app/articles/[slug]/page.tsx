@@ -62,7 +62,18 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           <p className="article-dek">{shown.dek}</p>
           <ArticleTranslate articleId={article.id} active={translation?.language ?? "en"}
             onChange={setTranslation} />
-          {author ? <StatusBadge verified={author.verified}>Reporter privately verified</StatusBadge> : null}
+          {author?.verified ? (
+            <div className="article-credential">
+              <StatusBadge verified>Reporter privately verified</StatusBadge>
+              {author.credentialName ? (
+                <dl className="credential-details">
+                  <div><dt>Name</dt><dd>{author.credentialName}</dd></div>
+                  {author.credentialCarnet ? <div><dt>Carnet CNP</dt><dd>{author.credentialCarnet}</dd></div> : null}
+                  {author.credentialSection ? <div><dt>Seccional CNP</dt><dd>{author.credentialSection}</dd></div> : null}
+                </dl>
+              ) : null}
+            </div>
+          ) : null}
         </header>
 
         <figure className="article-figure">
