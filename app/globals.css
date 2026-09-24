@@ -604,12 +604,12 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 
 /* Open Collective clarity meets a focused GoFundMe contribution flow. */
 .fund-page { min-height: 100dvh; margin-left: 236px; }
-.fund-shell { width: min(1040px, calc(100% - 64px)); margin: 0 auto; padding: 72px 0 100px; }
+.fund-shell { width: min(760px, calc(100% - 64px)); margin: 0 auto; padding: 72px 0 100px; }
 .fund-intro { max-width: 650px; margin-bottom: 38px; }
 .fund-intro h1 { margin: 0; font: 650 clamp(3.8rem, 8vw, 7.2rem)/.86 var(--font-serif), serif; letter-spacing: -.055em; }
-.fund-main-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr); gap: 24px; align-items: stretch; }
+.fund-main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 .fund-balance, .fund-donate { border: 1.5px solid var(--ink); border-radius: 16px; }
-.fund-balance { min-height: 430px; padding: clamp(28px, 4vw, 48px); display: flex; flex-direction: column; justify-content: center; color: white; background: var(--ink); box-shadow: 7px 7px 0 var(--orange); }
+.fund-balance { min-height: 320px; padding: clamp(28px, 4vw, 48px); display: flex; flex-direction: column; justify-content: center; color: white; background: var(--ink); box-shadow: 7px 7px 0 var(--orange); }
 .fund-balance-icon { width: 30px; height: 30px; margin-bottom: 48px; color: var(--orange); }
 .fund-balance > strong { font: 640 clamp(4.3rem, 8vw, 7rem)/.86 var(--font-serif), serif; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .fund-balance > strong small { font: 650 .19em/1 var(--font-sans), sans-serif; letter-spacing: .04em; }
@@ -649,7 +649,6 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 @media (max-width: 900px) {
   .fund-page { margin-left: 0; }
   .fund-shell { width: min(760px, calc(100% - 48px)); padding-top: 56px; }
-  .fund-main-grid { grid-template-columns: 1fr; }
   .fund-balance { min-height: 340px; }
 }
 
@@ -747,6 +746,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .signup-back, .signup-next { min-height: 48px; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; font-size: .78rem; font-weight: 750; }
 .signup-back { border: 0; color: var(--ink-soft); background: transparent; }
 .signup-next { border: 0; color: white; background: var(--ink); }
+.signup-next:disabled { cursor: not-allowed; opacity: .42; }
 .signup-back:hover { color: var(--ink); background: #f1ede5; }
 .signup-next:hover { background: #2a3741; }
 .signup-complete { width: min(540px,calc(100% - 32px)); margin: auto; padding: 54px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: center; }
@@ -754,6 +754,13 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .signup-complete h1 { margin: 26px 0 10px; font: 640 3.2rem/1 var(--font-serif),serif; letter-spacing: -.04em; }
 .signup-complete p { color: var(--ink-soft); }
 .signup-complete a { min-height: 48px; margin-top: 20px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; color: white; background: var(--ink); font-weight: 700; }
+.signup-email-action { min-height: 48px; padding-left: 13px; display: flex; align-items: center; border: 1px solid #bdb7ae; border-radius: 8px; background: #fff; }
+.signup-email-action:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(21,89,214,.13); }
+.signup-email-action input { min-width: 0; height: 46px; flex: 1; border: 0; outline: 0; background: transparent; font-size: 1rem; }
+.signup-email-action button { min-height: 40px; margin-right: 4px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: var(--ink); font-size: .72rem; font-weight: 750; white-space: nowrap; }
+.signup-code-block { margin-top: 24px; padding-top: 4px; }
+.signup-media-status { min-height: 28px; margin: 18px 0 0; color: #a12828; font-size: .72rem; font-weight: 650; }
+.signup-media-status--verified { display: flex; align-items: center; gap: 7px; color: var(--green); }
 
 @media (max-width: 860px) {
   .signup-panel { padding: 30px 24px 72px; }

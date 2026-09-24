@@ -7,16 +7,18 @@ A calm, progressive account flow that separates public identity from private ver
 ## Structure
 
 - Single centered form with a small Vera header and no marketing panel.
-- Step 1: Journalist, Activist, or Contributor and account credentials.
+- Step 1: Journalist, Activist, or Media and account credentials.
 - Step 2: public pseudonym, handle, and optional bio.
 - Step 3, journalists only: CNP number, ID number, name and surname, and government ID.
+- Step 3, media only: work email, approved-domain check, and emailed verification code.
 - Completion sends the user directly to the article editor.
 
 ## Interaction
 
 - Always show progress as “Step x of y” and with a progress rule.
 - Keep labels visible and preserve password-manager/autofill behavior.
-- Journalists receive one extra verification step; activists never see unnecessary identity fields.
+- Journalists and Media receive role-specific verification steps; activists never see unnecessary identity fields.
+- The current Media domain lookup and verification code are front-end demo states until the database and email service are connected.
 - Document selection displays the filename before submission.
 
 ## Responsive behavior
