@@ -27,21 +27,16 @@
       </header>
 
       <main>
-        <section class="composer" aria-label="Create an article">
-          <button class="author-seal seal-a" aria-label="Your profile"><span></span></button>
-          <button class="composer-prompt" id="openComposer">
-            <span>Post an article</span>
-            <small>Write under your protected identity</small>
-          </button>
-          <button class="compose-button" id="openComposerIcon" aria-label="Write a new article">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5.5 4 4M4 20l3.6-.7L19 7.9a1.7 1.7 0 0 0 0-2.4l-.5-.5a1.7 1.7 0 0 0-2.4 0L4.7 16.4 4 20Z" /></svg>
-          </button>
-        </section>
-
+        <section class="screen active" id="articlesScreen" aria-label="Articles">
         <nav class="feed-tabs" aria-label="Article feed">
           <button class="feed-tab active" data-filter="following">Following</button>
           <button class="feed-tab" data-filter="latest">Latest</button>
         </nav>
+
+        <div class="feed-context">
+          <div><strong>Today’s briefing</strong><span>Reporting from protected journalists</span></div>
+          <button id="feedOptions" aria-label="Open feed settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4" /></svg></button>
+        </div>
 
         <section class="feed" id="feed" aria-live="polite">
           <article class="story" data-order="2">
@@ -56,7 +51,7 @@
               </header>
               <h2>Inside the towns being erased from the official map</h2>
               <p>Residents describe quiet evictions, missing records, and the roads that disappear before dawn.</p>
-              <footer class="story-meta"><span>6 min read</span><span>Field report</span></footer>
+              <footer class="story-meta"><div><span>6 min read</span><span>Field report</span></div><button class="save-story" aria-label="Save article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12v16l-6-3.8-6 3.8Z"/></svg></button></footer>
             </div>
             <div class="story-art art-map" role="img" aria-label="Abstract map with routes and location markers">
               <svg viewBox="0 0 112 112" aria-hidden="true"><path class="land" d="M-8 16c19 4 27-7 42-2s16 17 33 16 24-11 48-6v97H-8Z"/><path class="route" d="M-8 91c26-7 35-34 58-35 19 0 28 20 67 11"/><path class="route thin" d="M9 18c22 14 28 37 24 94M80-3c-7 28-3 47 32 58"/><circle cx="50" cy="56" r="5"/></svg>
@@ -75,7 +70,7 @@
               </header>
               <h2>The night shift keeping the city online</h2>
               <p>When the grid fails, a hidden network of technicians crosses checkpoints to restore it.</p>
-              <footer class="story-meta"><span>4 min read</span><span>Dispatch</span></footer>
+              <footer class="story-meta"><div><span>4 min read</span><span>Dispatch</span></div><button class="save-story" aria-label="Save article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12v16l-6-3.8-6 3.8Z"/></svg></button></footer>
             </div>
             <div class="story-art art-night" role="img" aria-label="Abstract city lights at night"><i></i><i></i><i></i><i></i><i></i></div>
           </article>
@@ -92,7 +87,7 @@
               </header>
               <h2>Who profits when the water stops?</h2>
               <p>Public invoices reveal a private supplier charging three times the regional average.</p>
-              <footer class="story-meta"><span>8 min read</span><span>Investigation</span></footer>
+              <footer class="story-meta"><div><span>8 min read</span><span>Investigation</span></div><button class="save-story" aria-label="Save article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12v16l-6-3.8-6 3.8Z"/></svg></button></footer>
             </div>
             <div class="story-art art-water" role="img" aria-label="Abstract illustration of rippling water"><span></span></div>
           </article>
@@ -109,23 +104,160 @@
               </header>
               <h2>A school, a server room, and 12,000 missing names</h2>
               <p>We recovered the database officials said never existed. This is what it contains.</p>
-              <footer class="story-meta"><span>11 min read</span><span>Data</span></footer>
+              <footer class="story-meta"><div><span>11 min read</span><span>Data</span></div><button class="save-story" aria-label="Save article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12v16l-6-3.8-6 3.8Z"/></svg></button></footer>
             </div>
             <div class="story-art art-data" role="img" aria-label="Abstract data grid"><span></span></div>
           </article>
         </section>
+        </section>
+
+        <section class="screen fund-screen" id="fundScreen" aria-label="Funding pool" hidden>
+          <section class="pool-wallet" aria-labelledby="poolWalletTitle">
+            <header>
+              <div><span id="poolWalletTitle">Reporting pool</span><small>Community-owned Bitcoin fund</small></div>
+              <span class="bitcoin-mark" aria-label="Bitcoin">₿</span>
+            </header>
+            <div class="pool-wallet-balance">
+              <strong>0.4278</strong><span>BTC</span>
+            </div>
+            <div class="pool-wallet-meta">
+              <span><i></i>Live onchain</span>
+              <button id="openPoolDetails">How payouts work</button>
+            </div>
+          </section>
+
+          <div class="pool-actions">
+            <button class="fund-button" id="openFund"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 7 4v8l-7 4-7-4V8l7-4Z"/><path d="M12 8v8M9 10h4a2 2 0 0 1 0 4H9"/></svg><span>Fund</span></button>
+            <button class="receive-pool" id="receivePool"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg><span>Receive</span></button>
+          </div>
+
+          <section class="payout-history" aria-labelledby="payoutTitle">
+            <header><div><h1 id="payoutTitle">Payout history</h1><p>Where the pool has gone</p></div><button id="payoutFilter" aria-label="Filter payout history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></header>
+
+            <article class="payout-row">
+              <span class="payout-seal seal-b"><span></span></span>
+              <div class="payout-copy"><strong>Northstar</strong><span>Field reporting · 2 hours ago</span><p>“Inside the towns being erased from the official map”</p></div>
+              <div class="payout-amount"><strong>0.0082 BTC</strong><span>Paid</span></div>
+            </article>
+            <article class="payout-row">
+              <span class="payout-seal seal-c"><span></span></span>
+              <div class="payout-copy"><strong>Mothlight</strong><span>Source protection · Yesterday</span><p>Travel and secure communications</p></div>
+              <div class="payout-amount"><strong>0.0046 BTC</strong><span>Paid</span></div>
+            </article>
+            <article class="payout-row">
+              <span class="payout-seal seal-d"><span></span></span>
+              <div class="payout-copy"><strong>Red Cedar</strong><span>Investigation · Sep 21</span><p>Public records and document review</p></div>
+              <div class="payout-amount"><strong>0.0110 BTC</strong><span>Paid</span></div>
+            </article>
+            <article class="payout-row">
+              <span class="payout-seal seal-e"><span></span></span>
+              <div class="payout-copy"><strong>Signal 29</strong><span>Data reporting · Sep 18</span><p>Database recovery and verification</p></div>
+              <div class="payout-amount"><strong>0.0064 BTC</strong><span>Paid</span></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="screen profile-screen" id="profileScreen" aria-label="Your profile" hidden>
+          <div class="profile-cover" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+
+          <section class="identity-block">
+            <div class="profile-seal seal-a"><span></span></div>
+            <button class="profile-settings" id="profileSettings" aria-label="Open profile settings">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+            </button>
+            <div class="public-identity">
+              <p>Your journalist name <span>Public</span></p>
+              <h1>Quiet Current</h1>
+              <div class="profile-verified">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>
+                Privately verified journalist
+              </div>
+            </div>
+
+            <div class="private-name">
+              <div class="private-lock">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              </div>
+              <div>
+                <span>Your name</span>
+                <strong id="realName">Elena Voss</strong>
+              </div>
+              <small>Only you</small>
+            </div>
+          </section>
+
+          <section class="wallet-card" aria-labelledby="walletTitle">
+            <header>
+              <div>
+                <span id="walletTitle">Bitcoin wallet</span>
+                <small>Available balance</small>
+              </div>
+              <span class="bitcoin-mark" aria-label="Bitcoin">₿</span>
+            </header>
+            <div class="wallet-balance">
+              <strong id="btcBalance">0.1842</strong>
+              <span>BTC</span>
+              <button id="toggleBalance" aria-label="Hide wallet balance" aria-pressed="false">
+                <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 16 16M3 12s3.4-6 9-6c1.6 0 3 .5 4.2 1.1M21 12s-3.4 6-9 6c-1.6 0-3-.5-4.2-1.1"/></svg>
+              </button>
+            </div>
+            <div class="wallet-actions">
+              <button id="walletActivity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/></svg>Activity</button>
+            </div>
+          </section>
+
+          <section class="profile-posts" aria-labelledby="yourPostsTitle">
+            <header>
+              <h2 id="yourPostsTitle">Your posts</h2>
+              <span>3 published</span>
+            </header>
+            <article class="profile-post">
+              <div>
+                <time datetime="2026-09-22">Sep 22</time>
+                <h3>The night shift keeping the city online</h3>
+                <p>4 min read</p>
+              </div>
+              <div class="profile-thumb thumb-night" aria-hidden="true"></div>
+            </article>
+            <article class="profile-post">
+              <div>
+                <time datetime="2026-09-16">Sep 16</time>
+                <h3>What disappears when the checkpoint closes</h3>
+                <p>7 min read</p>
+              </div>
+              <div class="profile-thumb thumb-route" aria-hidden="true"></div>
+            </article>
+            <article class="profile-post">
+              <div>
+                <time datetime="2026-09-04">Sep 4</time>
+                <h3>Notes from a city learning to whisper</h3>
+                <p>5 min read</p>
+              </div>
+              <div class="profile-thumb thumb-signal" aria-hidden="true"></div>
+            </article>
+          </section>
+        </section>
       </main>
 
       <nav class="bottom-nav" aria-label="Primary navigation">
-        <a href="#" class="nav-item active" aria-current="page">
+        <button class="nav-item active" aria-current="page" data-screen="articles">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 10h16M4 14.5h10M4 19h7" /></svg>
           <span>Articles</span>
-        </a>
-        <button class="nav-item coming-soon" data-page="Fund">
+        </button>
+        <button class="nav-item" data-screen="fund">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.8a1.8 1.8 0 0 1 0 3.6H9.8" /></svg>
           <span>Fund</span>
         </button>
-        <button class="nav-item coming-soon" data-page="Profile">
+        <button class="nav-item post-action" id="openComposerNav" aria-label="Post an article">
+          <span class="post-action-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5.5 4 4M4 20l3.6-.7L19 7.9a1.7 1.7 0 0 0 0-2.4l-.5-.5a1.7 1.7 0 0 0-2.4 0L4.7 16.4 4 20Z" /></svg>
+          </span>
+          <span>Post</span>
+        </button>
+        <button class="nav-item" data-screen="profile">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" /></svg>
           <span>Profile</span>
         </button>
@@ -145,6 +277,63 @@
         </div>
         <label>Headline<input id="headlineInput" type="text" placeholder="Give readers the essential story" /></label>
         <label>Article<textarea id="articleInput" rows="9" placeholder="Start writing…"></textarea></label>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="fundModal" hidden>
+      <section class="fund-modal" role="dialog" aria-modal="true" aria-labelledby="fundModalTitle">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <header>
+          <div>
+            <p>Contribute with Bitcoin</p>
+            <h2 id="fundModalTitle">Fund the pool</h2>
+          </div>
+          <button class="close-round" id="closeFund" aria-label="Close funding form">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg>
+          </button>
+        </header>
+
+        <div class="amount-entry">
+          <span>₿</span>
+          <input id="fundAmount" type="number" inputmode="decimal" value="0.001" min="0.00001" step="0.00001" aria-label="Contribution amount in Bitcoin" />
+          <strong>BTC</strong>
+        </div>
+
+        <div class="quick-amounts" aria-label="Suggested amounts">
+          <button data-amount="0.00025">₿0.00025</button>
+          <button class="selected" data-amount="0.001">₿0.001</button>
+          <button data-amount="0.0025">₿0.0025</button>
+          <button data-amount="0.005">₿0.005</button>
+        </div>
+
+        <div class="network-row">
+          <span class="usdc-mark bitcoin-network">₿</span>
+          <div><strong>Bitcoin</strong><small>Lightning network</small></div>
+          <span class="network-status">Fast settlement</span>
+        </div>
+
+        <p class="fund-privacy"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>Your contribution is public, but your identity is not.</p>
+        <button class="connect-wallet" id="connectWallet">Connect wallet</button>
+      </section>
+    </div>
+
+    <div class="reader-modal" id="readerModal" hidden>
+      <section class="reader-view" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
+        <header class="reader-bar">
+          <button id="closeReader" aria-label="Close article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+          <span>Article</span>
+          <button id="readerSave" aria-label="Save article"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12v16l-6-3.8-6 3.8Z"/></svg></button>
+        </header>
+        <article class="reader-body">
+          <div class="reader-byline"><span class="mini-seal seal-b"><span></span></span><div><strong id="readerAuthor">Northstar</strong><small>Verified privately · <span id="readerLength">6 min read</span></small></div></div>
+          <h1 id="readerTitle">Inside the towns being erased from the official map</h1>
+          <p class="reader-dek" id="readerDek">Residents describe quiet evictions, missing records, and the roads that disappear before dawn.</p>
+          <div class="reader-hero" role="img" aria-label="Abstract terrain map"><i></i><i></i><i></i></div>
+          <p>At first light, the road is almost empty. A delivery truck passes the last marked intersection, then turns toward a neighborhood that no longer appears on the city’s newest maps.</p>
+          <p>Residents say the change arrived quietly: an address missing from one form, a utility record unavailable on another. No single document announced that the town had disappeared.</p>
+          <aside><strong>Identity protected</strong><span>Vera verified this journalist’s credentials without revealing their identity.</span></aside>
+          <p>The reporting continues. Interviews and source documents are being preserved so the public record cannot be erased with the map.</p>
+        </article>
       </section>
     </div>
 
