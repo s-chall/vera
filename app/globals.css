@@ -369,9 +369,6 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .status-badge { width: max-content; min-height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; color: var(--blue); background: var(--blue-soft); font-size: .75rem; font-weight: 700; }
 .article-page figure { margin: 48px 0 20px; }
 .article-page figcaption { margin-top: 10px; color: var(--ink-soft); font-size: .72rem; }
-.source-protection { padding: 18px 20px; display: flex; gap: 12px; border-left: 3px solid var(--blue); color: var(--orange-dark); background: var(--blue-soft); }
-.source-protection svg { flex: 0 0 auto; margin-top: 3px; }
-.source-protection p { margin: 0; font-size: .85rem; }
 .article-body { max-width: 680px; margin: 48px auto 0; }
 .article-body p { margin: 0 0 1.5em; font: 450 1.25rem/1.72 var(--font-serif), serif; }
 .article-body h2 { margin: 2em 0 .65em; font: 650 2.2rem/1.05 var(--font-serif), serif; letter-spacing: -.025em; }

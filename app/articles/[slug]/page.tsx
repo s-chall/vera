@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bookmark, Clock3, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Bookmark, Clock3 } from "lucide-react";
 import { useVera } from "@/lib/vera";
 import { ArtBlock } from "@/lib/art";
 import { StatusBadge } from "@/components/status-badge";
@@ -73,11 +73,6 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           </div>
           <figcaption>Identifying details were separated from source files before publication.</figcaption>
         </figure>
-
-        <aside className="source-protection">
-          <ShieldCheck aria-hidden="true" />
-          <p><strong>Source protection is active.</strong> Documents are encrypted and identities are stored separately from the published article.</p>
-        </aside>
 
         <div className="article-body">
           {shown.body.map((line, index) => (
