@@ -1,81 +1,50 @@
 /* Three account types, the media-domain gate, journalist verification, and
    the visibility rules that follow from account type. */
-const BASE = process.env.VERA_URL || 'http://127.0.0.1:54321';
-const KEY = process.env.VERA_KEY || 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
+import { api, uniq, newAccount, profileOf, passwordGrant } from './helpers.mjs';
+
 const ADMIN = { email: 'admin@vera.test', password: 'vera-admin-2026' };
 
 const results = [];
 const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String(e ?? '')]);
 
-async function api(path, { token, method = 'GET', body, prefer, raw, contentType } = {}) {
-  const headers = { apikey: KEY };
-  if (contentType !== null) headers['Content-Type'] = contentType || 'application/json';
-  if (token) headers.Authorization = 'Bearer ' + token;
-  if (prefer) headers.Prefer = prefer;
-  const res = await fetch(BASE + path, {
-    method,
-    headers,
-    body: raw !== undefined ? raw : body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  return { status: res.status, data };
-}
-
-const signUp = (email, accountType) =>
-  api('/auth/v1/signup', { method: 'POST', body: { email, password: 'test-password-long', data: { account_type: accountType } } });
-const password = (email, pw) =>
-  api('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password: pw } });
-const uniq = (p) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 999)}`;
-
-const profileOf = async (token, userId) => {
-  for (let i = 0; i < 8; i += 1) {
-    const r = await api('/rest/v1/journalists?select=*&owner_user_id=eq.' + userId, { token });
-    if (r.data?.[0]) return r.data[0];
-    await new Promise((res) => setTimeout(res, 250));
-  }
-  return null;
-};
 
 (async () => {
   // ---------- media organisation gate
-  const badOrg = await signUp(`${uniq('desk')}@gmail.com`, 'media_org');
+  const badOrg = (await newAccount('media_org', { domain: 'gmail.com' })).signup;
   check('media_org rejected from a non-outlet domain',
     badOrg.status >= 400 && /recognised outlet/i.test(JSON.stringify(badOrg.data)),
     badOrg.status + ' ' + JSON.stringify(badOrg.data).slice(0, 120));
 
-  const orgEmail = `${uniq('desk')}@nytimes.com`;
-  const org = await signUp(orgEmail, 'media_org');
-  check('media_org accepted from an allowlisted domain', Boolean(org.data?.access_token),
-    JSON.stringify(org.data).slice(0, 130));
-  const orgProfile = org.data?.access_token ? await profileOf(org.data.access_token, org.data.user.id) : null;
+  const org = await newAccount('media_org', { domain: 'nytimes.com' });
+  check('media_org accepted from an allowlisted domain', Boolean(org.token),
+    JSON.stringify(org.signup.data).slice(0, 130));
+  const orgProfile = org.token ? await profileOf(org.token, org.user.id) : null;
   check('media_org account carries the right type', orgProfile?.account_type === 'media_org', orgProfile?.account_type);
 
   const domainCheck = await api('/rest/v1/rpc/domain_is_media', { method: 'POST', body: { address: 'x@theguardian.com' } });
   check('domain_is_media recognises a seeded outlet', domainCheck.data === true, JSON.stringify(domainCheck.data));
 
   // ---------- funder
-  const funder = await signUp(`${uniq('backer')}@example.com`, 'funder');
-  check('funder can create an account', Boolean(funder.data?.access_token));
-  const funderProfile = await profileOf(funder.data.access_token, funder.data.user.id);
+  const funder = await newAccount('funder');
+  check('funder can create an account', Boolean(funder.token));
+  const funderProfile = await profileOf(funder.token, funder.user.id);
   check('funder starts unfunded', funderProfile?.funding_confirmed_at === null, String(funderProfile?.funding_confirmed_at));
-  const active = await api('/rest/v1/rpc/account_is_active', { token: funder.data.access_token, method: 'POST', body: { target: funderProfile.id } });
+  const active = await api('/rest/v1/rpc/account_is_active', { token: funder.token, method: 'POST', body: { target: funderProfile.id } });
   check('funder account is inactive until funded', active.data === false, JSON.stringify(active.data));
 
   const selfFund = await api('/rest/v1/journalists?id=eq.' + funderProfile.id, {
-    token: funder.data.access_token, method: 'PATCH', body: { funding_confirmed_at: new Date().toISOString() } });
+    token: funder.token, method: 'PATCH', body: { funding_confirmed_at: new Date().toISOString() } });
   check('a funder cannot confirm their own funding', selfFund.status >= 400, selfFund.status);
 
   const selfPromote = await api('/rest/v1/journalists?id=eq.' + funderProfile.id, {
-    token: funder.data.access_token, method: 'PATCH', body: { account_type: 'journalist' } });
+    token: funder.token, method: 'PATCH', body: { account_type: 'journalist' } });
   check('account_type cannot be changed after signup', selfPromote.status >= 400, selfPromote.status);
 
   // ---------- journalist + verification
-  const jr = await signUp(`${uniq('reporter')}@example.com`, 'journalist');
-  check('journalist can create an account', Boolean(jr.data?.access_token));
-  const jrToken = jr.data.access_token;
-  const jrProfile = await profileOf(jrToken, jr.data.user.id);
+  const jr = await newAccount('journalist');
+  check('journalist can create an account', Boolean(jr.token));
+  const jrToken = jr.token;
+  const jrProfile = await profileOf(jrToken, jr.user.id);
   check('journalist starts unverified', jrProfile?.verified_at === null, String(jrProfile?.verified_at));
 
   const docPath = `${jrProfile.id}/id-${Date.now().toString(36)}.png`;
@@ -93,6 +62,17 @@ const profileOf = async (token, userId) => {
     token: jrToken, method: 'POST', body: { cnpNumber: '24165', documentPath: docPath } });
   check('verification submitted', submit.status === 200, submit.status + ' ' + JSON.stringify(submit.data).slice(0, 130));
 
+  const second = await newAccount('journalist');
+  const secondProfile = await profileOf(second.token, second.user.id);
+  const secondDoc = `${secondProfile.id}/id-${Date.now().toString(36)}.png`;
+  await api(`/storage/v1/object/verification-documents/${secondDoc}`, {
+    token: second.token, method: 'POST', contentType: 'image/png',
+    raw: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) });
+  const dupeCnp = await api('/functions/v1/submit-verification', {
+    token: second.token, method: 'POST', body: { cnpNumber: '24165', documentPath: secondDoc } });
+  check('the same CNP cannot be registered twice', dupeCnp.status === 409,
+    dupeCnp.status + ' ' + JSON.stringify(dupeCnp.data).slice(0, 110));
+
   const mine = await api('/rest/v1/verification_requests?select=*', { token: jrToken });
   check('applicant sees their own request', mine.data?.length === 1, JSON.stringify(mine.data).slice(0, 120));
   check('no legal name or cedula column exists',
@@ -102,7 +82,7 @@ const profileOf = async (token, userId) => {
     typeof mine.data?.[0]?.cnp_fingerprint === 'string' && !mine.data[0].cnp_fingerprint.includes('24165'),
     String(mine.data?.[0]?.cnp_fingerprint).slice(0, 40));
 
-  const otherSees = await api('/rest/v1/verification_requests?select=*', { token: funder.data.access_token });
+  const otherSees = await api('/rest/v1/verification_requests?select=*', { token: funder.token });
   check('another account cannot see the request', otherSees.data?.length === 0, JSON.stringify(otherSees.data));
 
   const notAdminQueue = await api('/rest/v1/rpc/pending_verifications', { token: jrToken, method: 'POST', body: {} });
@@ -118,7 +98,7 @@ const profileOf = async (token, userId) => {
   check('decide_verification is not callable from a client', rpcDirect.status >= 400, rpcDirect.status);
 
   // ---------- admin review
-  const admin = await password(ADMIN.email, ADMIN.password);
+  const admin = await passwordGrant(ADMIN.email, ADMIN.password);
   const adminToken = admin.data.access_token;
   const queue = await api('/rest/v1/rpc/pending_verifications', { token: adminToken, method: 'POST', body: {} });
   check('admin sees the pending request', queue.data?.some((r) => r.journalist_id === jrProfile.id),
@@ -149,27 +129,27 @@ const profileOf = async (token, userId) => {
   check('journalist work defaults to media_only', post.data?.[0]?.visibility === 'media_only', post.data?.[0]?.visibility);
 
   const slug = post.data?.[0]?.slug;
-  const funderSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: funder.data.access_token });
+  const funderSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: funder.token });
   check('a funder cannot read journalist-only work', funderSees.data?.length === 0, JSON.stringify(funderSees.data));
 
-  const orgSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: org.data.access_token });
+  const orgSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: org.token });
   check('a media organisation can read it', orgSees.data?.length === 1, JSON.stringify(orgSees.data));
 
   const authorSees = await api('/rest/v1/articles?select=slug&slug=eq.' + slug, { token: jrToken });
   check('the author can read their own', authorSees.data?.length === 1, JSON.stringify(authorSees.data));
 
   // A media organisation's own piece is members-visible, so everyone sees it.
-  const orgPost = await api('/rest/v1/articles', { token: org.data.access_token, method: 'POST', prefer: 'return=representation',
+  const orgPost = await api('/rest/v1/articles', { token: org.token, method: 'POST', prefer: 'return=representation',
     body: { journalist_id: orgProfile.id, slug: uniq('desk'), title: 'From the desk',
             dek: 'Open to members.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
   check('media_org work defaults to members', orgPost.data?.[0]?.visibility === 'members', orgPost.data?.[0]?.visibility);
 
-  const funderSeesOrg = await api('/rest/v1/articles?select=slug&slug=eq.' + orgPost.data?.[0]?.slug, { token: funder.data.access_token });
+  const funderSeesOrg = await api('/rest/v1/articles?select=slug&slug=eq.' + orgPost.data?.[0]?.slug, { token: funder.token });
   check('a funder sees members-visible work', funderSeesOrg.data?.length === 1, JSON.stringify(funderSeesOrg.data));
 
   // Consequence of the current rules, stated as a test so it cannot drift
   // unnoticed: every seeded reporter is a journalist, so a funder's feed is empty.
-  const funderFeed = await api('/rest/v1/articles?select=slug', { token: funder.data.access_token });
+  const funderFeed = await api('/rest/v1/articles?select=slug', { token: funder.token });
   check('funders currently see only non-journalist work', funderFeed.data?.length === 1,
     'funder sees ' + funderFeed.data?.length + ' of ' + 6);
 

@@ -53,8 +53,8 @@ writeFileSync(DOC, Buffer.from(
 
     check('journalist is preselected',
       (await page.locator('.signup-role-grid button[aria-pressed="true"] strong').textContent()) === 'Journalist');
-    check('journalist flow is three steps',
-      (await page.textContent('.signup-progress span')) === 'Step 1 of 3',
+    check('journalist signup is two steps',
+      (await page.textContent('.signup-progress span')) === 'Step 1 of 2',
       await page.textContent('.signup-progress span'));
 
     await page.fill('input[type=email]', `${uniq('reporter')}@example.com`);
@@ -65,38 +65,42 @@ writeFileSync(DOC, Buffer.from(
     const passwordValid = await page.$eval('input[type=password]', (el) => el.checkValidity());
     check('short password refused', passwordValid === false, 'field reported valid');
     check('short password keeps you on step one',
-      (await page.textContent('.signup-progress span')) === 'Step 1 of 3',
+      (await page.textContent('.signup-progress span')) === 'Step 1 of 2',
       await page.textContent('.signup-progress span'));
 
     await page.fill('input[type=password]', 'a-long-enough-password');
     await page.click('.signup-next');
     await page.waitForSelector('.seal-picker', { timeout: 10000 });
-    check('step two asks for a public alias', (await page.textContent('.signup-progress span')) === 'Step 2 of 3');
+    check('step two asks for a public alias', (await page.textContent('.signup-progress span')) === 'Step 2 of 2');
 
     journalistAlias = 'Dry Beacon ' + Math.floor(Math.random() * 8999 + 1000);
     await page.fill('.signup-step input[type=text]', journalistAlias);
     await page.click('.seal-option:nth-child(3)');
     await page.click('.signup-next');
 
-    await page.waitForSelector('.signup-upload', { timeout: 25000 });
-    check('step three asks for verification', (await page.textContent('.signup-progress span')) === 'Step 3 of 3');
-    check('verification step says the document is deleted',
-      (await page.textContent('.signup-step'))?.includes('deleted'), '');
-    check('it says the cedula is not stored',
-      (await page.textContent('.signup-step'))?.toLowerCase().includes('cédula'), '');
+    // Signing up signs you in, and the gate sends a journalist straight to
+    // verification rather than through a dead-end confirmation screen.
+    await page.waitForSelector('#cnp', { timeout: 30000 });
+    check('journalist is prompted to verify right after signup', await page.isVisible('#cnp'));
+    check('prompt says the document is deleted',
+      (await page.textContent('.auth-card'))?.includes('deletes your document'), '');
+    check('prompt says the cedula is not stored',
+      (await page.textContent('.auth-card'))?.toLowerCase().includes('cédula'), '');
+    check('verification can be skipped', await page.isVisible('.auth-alt button'));
 
-    await page.fill('.signup-step input[inputmode=numeric]', '24165');
+    // a unique number per run, so repeated runs without a reset still work
+    const cnp = String(20000 + Math.floor(Math.random() * 8000));
+    await page.fill('#cnp', cnp);
     await page.setInputFiles('.signup-upload input[type=file]', DOC);
-    await page.click('.signup-next');
+    await page.click('.auth-submit');
+    // the prompt clears once the request is recorded
+    await page.waitForSelector('#cnp', { state: 'detached', timeout: 30000 });
+    check('verification prompt clears once submitted', !(await page.isVisible('#cnp')));
 
-    await page.waitForSelector('.signup-complete', { timeout: 30000 });
-    check('journalist account created', await page.isVisible('.signup-complete'));
-    check('told the document will be deleted',
-      (await page.textContent('.signup-complete p'))?.includes('deleted'), await page.textContent('.signup-complete p'));
-
-    await page.click('.signup-complete button');
-    await page.waitForTimeout(2500);
-    check('journalist lands in the app signed in', await page.isVisible('.site-header'), page.url());
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForSelector('.site-header', { timeout: 20000 });
+    check('journalist is in the app and no longer prompted',
+      (await page.isVisible('.site-header')) && !(await page.isVisible('#cnp')), page.url());
     check('no uncaught errors during journalist signup', errors.length === 0, errors.slice(0, 2).join(' | '));
     await context.close();
   }
@@ -127,8 +131,9 @@ writeFileSync(DOC, Buffer.from(
     await page.click('.signup-next');
     await page.waitForSelector('.signup-complete', { timeout: 30000 });
     check('media org account created', await page.isVisible('.signup-complete'));
-    check('no verification step for a media org',
-      !(await page.textContent('.signup-complete p'))?.includes('document'), await page.textContent('.signup-complete p'));
+    await page.click('.signup-complete button');
+    await page.waitForTimeout(2500);
+    check('a media org is never asked to verify a CNP', !(await page.isVisible('#cnp')));
     await context.close();
   }
 

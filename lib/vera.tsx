@@ -53,7 +53,8 @@ type Vera = State & {
   signUp: (input: {
     email: string; password: string; alias: string; seal: string;
     accountType: AccountType; bio?: string;
-  }) => Promise<void>;
+  }) => Promise<{ confirmationRequired: boolean }>;
+  needsVerification: boolean;
   isMediaDomain: (email: string) => Promise<boolean>;
   submitVerification: (cnpNumber: string, document: File) => Promise<void>;
   pendingVerifications: () => Promise<PendingVerification[]>;
@@ -172,6 +173,21 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
     }
 
     const mine = mineRes.data as { id: string; is_admin: boolean; account_type: AccountType };
+
+    // The alias chosen during signup could not be written without a session.
+    try {
+      const pending = window.localStorage.getItem("vera.pendingProfile");
+      if (pending) {
+        const { alias, seal, bio } = JSON.parse(pending);
+        await db.from("journalists").update({ public_alias: alias, seal, bio }).eq("id", mine.id);
+        window.localStorage.removeItem("vera.pendingProfile");
+        const refreshed = await db.from("bylines").select("*").eq("id", mine.id).maybeSingle();
+        const row = refreshed.data as BylineRow | null;
+        if (row) {
+          bylines[row.id] = { ...bylines[row.id], alias: row.public_alias, seal: row.seal, bio: row.bio };
+        }
+      }
+    } catch { /* a stored alias is a convenience, never a blocker */ }
     const verificationRes = await db.from("verification_requests").select("status").maybeSingle();
     setState({
       ready: true,
@@ -226,6 +242,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       ...state,
       me,
       isAdmin: state.isAdmin,
+      needsVerification:
+        state.accountType === "journalist" && state.verification === null && !me?.verified,
       notice,
       busy,
 
@@ -253,7 +271,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         return live;
       },
 
-      signUp: ({ email, password, alias, seal, accountType, bio }) => guard(async () => {
+      signUp: async ({ email, password, alias, seal, accountType, bio }) => {
         const db = mustHaveDb();
         const { data, error } = await db.auth.signUp({
           email, password,
@@ -272,9 +290,13 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           }
           throw new Error(error.message);
         }
+        // With email confirmation on, signUp issues no session. The account
+        // and its byline exist; the alias is applied on first sign-in.
         if (!data.session) {
-          throw new Error("Account created. Confirm the email address, then sign in.");
+          window.localStorage.setItem("vera.pendingProfile", JSON.stringify({ alias, seal, bio: bio || "" }));
+          return { confirmationRequired: true };
         }
+
         const id = await waitForProfile(data.session.user.id);
         const { error: profileError } = await db.from("journalists")
           .update({ public_alias: alias, seal, bio: bio || "" }).eq("id", id);
@@ -285,7 +307,8 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         }
         await load();
         setNotice(`Welcome, ${alias}`);
-      }),
+        return { confirmationRequired: false };
+      },
 
       isMediaDomain: async (email) => {
         const db = mustHaveDb();

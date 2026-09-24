@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ShieldOff } from "lucide-react";
 import { useVera } from "@/lib/vera";
+import { VerificationPrompt } from "@/components/verification-prompt";
 
 /** Signed out, only the signup route renders its own page; everything else is sign-in. */
 export function SignupGate({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [skippedVerification, setSkipped] = useState(false);
 
   if (!vera.ready) {
     return <main id="main-content" className="auth-screen"><section className="auth-card"><h1>Opening Vera</h1><p>Checking your session.</p></section></main>;
@@ -29,7 +31,12 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (vera.signedIn) return <>{children}</>;
+  if (vera.signedIn) {
+    if (vera.needsVerification && !skippedVerification) {
+      return <VerificationPrompt onSkip={() => setSkipped(true)} />;
+    }
+    return <>{children}</>;
+  }
   if (pathname === "/signup") return <>{children}</>;
 
   return (

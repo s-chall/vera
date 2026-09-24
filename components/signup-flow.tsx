@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Building2, Check, Eye, EyeOff, FileCheck2, HandCoins, ShieldCheck, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Eye, EyeOff, FileCheck2, HandCoins, MailCheck } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useVera, SEALS, ALIAS_SHAPE } from "@/lib/vera";
@@ -26,13 +26,13 @@ export function SignupFlow() {
   const [alias, setAlias] = useState("");
   const [seal, setSeal] = useState(SEALS[0]);
   const [bio, setBio] = useState("");
-  const [cnp, setCnp] = useState("");
-  const [document, setDocument] = useState<File | null>(null);
   const [domainOk, setDomainOk] = useState<boolean | null>(null);
   const [created, setCreated] = useState(false);
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
 
-  const needsVerification = role === "journalist";
-  const totalSteps = needsVerification ? 3 : 2;
+  // Every type is two steps now. A journalist proves their CNP registration
+  // after confirming their email, because uploading a document needs a session.
+  const totalSteps = 2;
 
   useEffect(() => {
     if (vera.ready && !alias) setAlias(vera.suggestAlias());
@@ -62,25 +62,43 @@ export function SignupFlow() {
       return setStep(2);
     }
 
-    if (step === 2) {
-      if (!ALIAS_SHAPE.test(alias.trim())) return vera.say("Aliases are 3 to 64 letters, numbers and spaces");
-      await vera.signUp({ email: email.trim(), password, alias: alias.trim(), seal, accountType: role, bio });
-      if (!needsVerification) { setCreated(true); return; }
-      return setStep(3);
+    if (!ALIAS_SHAPE.test(alias.trim())) return vera.say("Aliases are 3 to 64 letters, numbers and spaces");
+    try {
+      const result = await vera.signUp({
+        email: email.trim(), password, alias: alias.trim(), seal, accountType: role, bio,
+      });
+      setConfirmationRequired(result.confirmationRequired);
+      setCreated(true);
+    } catch (error) {
+      vera.say(error instanceof Error ? error.message : String(error));
     }
-
-    if (!cnp.trim()) return vera.say("Enter your CNP number");
-    if (!document) return vera.say("Attach your identity document");
-    await vera.submitVerification(cnp.trim(), document);
-    setCreated(true);
   }
 
   if (created) {
-    const message = needsVerification
-      ? "Your document is queued for review and will be deleted once a decision is made."
-      : role === "funder"
-        ? "Your account is ready. It becomes active once a contribution to the pool clears."
-        : "Your account is ready.";
+    if (confirmationRequired) {
+      const why = role === "media_org"
+        ? `Confirming ${email.trim()} is what proves you hold a mailbox at that organisation.`
+        : "You will not be able to sign in until the address is confirmed.";
+      return (
+        <main id="main-content" className="signup-page">
+          <section className="signup-complete">
+            <span><MailCheck aria-hidden="true" /></span>
+            <h1>Check your email.</h1>
+            <p>We sent a confirmation link to <strong>{email.trim()}</strong>. {why}</p>
+            {role === "journalist"
+              ? <p>Once you sign in you will be asked to verify your CNP registration.</p>
+              : null}
+            <button type="button" onClick={() => router.push("/")}>
+              Go to sign in<ArrowRight aria-hidden="true" />
+            </button>
+          </section>
+        </main>
+      );
+    }
+
+    const message = role === "funder"
+      ? "Your account is ready. It becomes active once a contribution to the pool clears."
+      : "Your account is ready.";
     return (
       <main id="main-content" className="signup-page">
         <section className="signup-complete">
@@ -181,37 +199,8 @@ export function SignupFlow() {
               </fieldset>
             ) : null}
 
-            {step === 3 ? (
-              <fieldset className="signup-step">
-                <legend>Journalist verification</legend>
-                <p className="signup-role-blurb">
-                  A reviewer checks your CNP number against the register and then deletes the document.
-                  We do not store your cédula, your name, or the file.
-                </p>
-
-                <label className="signup-field">
-                  <span>CNP number</span>
-                  <input type="text" inputMode="numeric" required pattern="[0-9]+" placeholder="24165"
-                    value={cnp} onChange={(event) => setCnp(event.target.value)} />
-                </label>
-
-                <label className="signup-upload">
-                  <Upload aria-hidden="true" />
-                  <span>
-                    <strong>{document?.name || "Upload identity document"}</strong>
-                    <small>Image or PDF, deleted once reviewed</small>
-                  </span>
-                  <input type="file" accept="image/*,.pdf" required
-                    onChange={(event) => setDocument(event.target.files?.[0] ?? null)} />
-                </label>
-
-                <p className="signup-privacy"><ShieldCheck aria-hidden="true" />
-                  Nothing here is linked to your alias after review. What survives is the decision.</p>
-              </fieldset>
-            ) : null}
-
             <div className="signup-form-actions">
-              {step > 1 && step < 3
+              {step > 1
                 ? <button className="signup-back" type="button" onClick={() => setStep(step - 1)}><ArrowLeft aria-hidden="true" />Back</button>
                 : <span />}
               <button className="signup-next" type="submit" disabled={vera.busy}>

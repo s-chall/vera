@@ -62,10 +62,12 @@ To make one on a hosted project, sign up normally and set `is_admin` with
 
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
-- **Journalist** — three steps, ending in CNP number plus an identity document.
-  Any image or PDF works locally.
+- **Journalist** — two steps, then you are asked for a CNP number and an
+  identity document straight after signing in. Any image or PDF works locally,
+  and the prompt is skippable.
 - **Media organisation** — needs an email at an allowlisted outlet. Try
-  `you@nytimes.com`. A `@gmail.com` address is rejected as you type.
+  `you@nytimes.com`. A `@gmail.com` address is rejected as you type, and again
+  in the signup trigger so the check cannot be skipped from the client.
 - **Funder** — creates an account that stays inactive, because there is no
   payment rail yet.
 
@@ -105,6 +107,17 @@ Chromium through all three signup flows and needs the dev server already
 running.
 
 ---
+
+### Email confirmation
+
+Off, so signup issues a session immediately. Turning `enable_confirmations` on
+under `[auth.email]` in `supabase/config.toml` is the only change needed: the
+signup screen already handles the no-session case, and the test helpers already
+collect the confirmation mail from Mailpit and follow the link.
+
+Worth turning on before this is real. For a media organisation it is the thing
+that proves control of a mailbox at the outlet, rather than only proving they
+typed a domain we recognise.
 
 ## Troubleshooting
 
