@@ -56,7 +56,7 @@ export function JournalistProfile() {
 
       <section className="profile-work">
         <div className="profile-work-heading">
-          <div><h2>Your articles</h2><p>Write, edit, and review the work published under your pseudonym.</p></div>
+          <div><h2>Your articles</h2></div>
           <Link className="profile-new-article" href="/write"><FilePenLine aria-hidden="true" />New article</Link>
         </div>
         <div className="profile-tabs" role="tablist" aria-label="Article status">

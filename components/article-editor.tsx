@@ -12,20 +12,22 @@ import {
   Italic,
   Link2,
   Minus,
+  Music2,
   Plus,
   Quote,
   ShieldCheck,
   Upload,
+  Video,
   X,
 } from "lucide-react";
 import type { ChangeEvent, DragEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
-type InsertKind = "image" | "document" | "source" | "quote" | "divider" | "embed";
+type InsertKind = "image" | "audio" | "video" | "document" | "source" | "quote" | "divider" | "embed";
 
 type UploadedItem = {
   id: string;
-  kind: "image" | "document" | "source";
+  kind: "image" | "audio" | "video" | "document" | "source";
   name: string;
   size: string;
   url?: string;
@@ -40,6 +42,8 @@ type InsertOption = {
 
 const INSERT_OPTIONS: InsertOption[] = [
   { kind: "image", label: "Image", description: "JPG, PNG, GIF, or WebP", icon: ImageIcon },
+  { kind: "audio", label: "Audio", description: "Add an interview or field recording", icon: Music2 },
+  { kind: "video", label: "Video", description: "Add a recorded segment", icon: Video },
   { kind: "document", label: "Document", description: "Attach a reader download", icon: FileText },
   { kind: "source", label: "Source file", description: "Keep reporting material private", icon: ShieldCheck },
   { kind: "quote", label: "Quote", description: "Add a pull quote", icon: Quote },
@@ -84,6 +88,8 @@ export function ArticleEditor() {
   const publishDescriptionId = useId();
   const bodyRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
   const leadInputRef = useRef<HTMLInputElement>(null);
@@ -126,8 +132,12 @@ export function ArticleEditor() {
     if (!files.length) return;
 
     const nextItems = files.map((file) => {
-      const kind = forcedKind ?? (file.type.startsWith("image/") ? "image" : "document");
-      const url = kind === "image" ? URL.createObjectURL(file) : undefined;
+      const kind = forcedKind ?? (
+        file.type.startsWith("image/") ? "image" :
+        file.type.startsWith("audio/") ? "audio" :
+        file.type.startsWith("video/") ? "video" : "document"
+      );
+      const url = ["image", "audio", "video"].includes(kind) ? URL.createObjectURL(file) : undefined;
       if (url) objectUrlsRef.current.add(url);
       return {
         id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
@@ -197,6 +207,8 @@ export function ArticleEditor() {
   const selectInsertOption = (kind: InsertKind) => {
     setInsertOpen(false);
     if (kind === "image") imageInputRef.current?.click();
+    if (kind === "audio") audioInputRef.current?.click();
+    if (kind === "video") videoInputRef.current?.click();
     if (kind === "document") documentInputRef.current?.click();
     if (kind === "source") sourceInputRef.current?.click();
     if (kind === "quote") runCommand("formatBlock", "blockquote");
@@ -356,13 +368,17 @@ export function ArticleEditor() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className="writer-upload-image" src={item.url} alt={`Article preview: ${item.name}`} />
                 ) : (
-                  <span className="writer-upload-icon" aria-hidden="true">{item.kind === "source" ? <ShieldCheck size={20} /> : <File size={20} />}</span>
+                  <span className="writer-upload-icon" aria-hidden="true">
+                    {item.kind === "source" ? <ShieldCheck size={20} /> : item.kind === "audio" ? <Music2 size={20} /> : item.kind === "video" ? <Video size={20} /> : <File size={20} />}
+                  </span>
                 )}
                 <span className="writer-upload-copy">
                   <strong>{item.name}</strong>
                   <small>{item.kind === "source" ? "Private source — not published" : item.size}</small>
                 </span>
                 <button className="writer-icon-button" type="button" aria-label={`Remove ${item.name}`} onClick={() => removeUpload(item)}><X aria-hidden="true" size={18} /></button>
+                {item.kind === "audio" && item.url ? <audio className="writer-media-preview" controls preload="metadata" src={item.url}>Your browser does not support audio playback.</audio> : null}
+                {item.kind === "video" && item.url ? <video className="writer-media-preview writer-video-preview" controls preload="metadata" src={item.url}>Your browser does not support video playback.</video> : null}
               </article>
             ))}
           </div>
@@ -395,6 +411,8 @@ export function ArticleEditor() {
         </div>
 
         <input className="writer-visually-hidden" ref={imageInputRef} type="file" accept="image/*" multiple tabIndex={-1} onChange={handleFileInput("image")} />
+        <input className="writer-visually-hidden" ref={audioInputRef} type="file" accept="audio/*" multiple tabIndex={-1} onChange={handleFileInput("audio")} />
+        <input className="writer-visually-hidden" ref={videoInputRef} type="file" accept="video/*" multiple tabIndex={-1} onChange={handleFileInput("video")} />
         <input className="writer-visually-hidden" ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" multiple tabIndex={-1} onChange={handleFileInput("document")} />
         <input className="writer-visually-hidden" ref={sourceInputRef} type="file" multiple tabIndex={-1} onChange={handleFileInput("source")} />
 

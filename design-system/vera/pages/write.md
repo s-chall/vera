@@ -9,7 +9,7 @@ A distraction-free long-form editor inspired by Ghost. Journalists write directl
 - Sticky action bar: back to News, autosave state, Preview, Publish.
 - Centered 760px writing canvas with protected publishing alias.
 - Borderless title, standfirst, lead image, formatting controls, and article body.
-- `+` insertion menu for images, documents, private source files, quotes, dividers, and embeds.
+- `+` insertion menu for images, audio segments, video segments, documents, private source files, quotes, dividers, and embeds.
 - Publish confirmation dialog containing the identity and metadata protection checks.
 
 ## Responsive behavior
@@ -22,5 +22,5 @@ A distraction-free long-form editor inspired by Ghost. Journalists write directl
 
 - Editing changes the live status from `Saved` to `Saving…` and back.
 - Dragging a file over the body reveals a drop target; every drag action also has a visible button alternative.
-- Reader attachments remain visible in the draft; source files are explicitly marked private and unpublished.
+- Reader attachments remain visible in the draft. Audio and video use native, non-autoplaying previews; source files are explicitly marked private and unpublished.
 - Publish opens progressive protection checks rather than permanently occupying editor space.

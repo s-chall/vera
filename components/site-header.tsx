@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUserRound, FilePenLine, Newspaper, Search } from "lucide-react";
+import { CircleUserRound, FilePenLine, HandCoins, Newspaper, Search } from "lucide-react";
 
 const links = [
   { href: "/", label: "News", icon: Newspaper },
+  { href: "/fund", label: "Fund", icon: HandCoins },
   { href: "/write", label: "Write", icon: FilePenLine },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
+  if (pathname.startsWith("/signup")) return null;
   return (
     <>
       <header className="site-header">

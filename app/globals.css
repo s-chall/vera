@@ -207,6 +207,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .writer-uploads { margin: -54px 0 30px; display: grid; gap: 10px; }
 .writer-upload { min-height: 68px; padding: 10px 10px 10px 14px; display: grid; grid-template-columns: 38px minmax(0,1fr) 44px; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 9px; background: #faf7f0; }
 .writer-upload--image { grid-template-columns: 64px minmax(0,1fr) 44px; }
+.writer-upload--audio, .writer-upload--video { grid-template-rows: auto auto; }
 .writer-upload--source { border-color: #b8d2c8; background: #edf7f3; }
 .writer-upload-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 7px; color: var(--blue); background: var(--blue-soft); }
 .writer-upload--source .writer-upload-icon { color: var(--green); background: #dcefe7; }
@@ -214,6 +215,8 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .writer-upload-copy { min-width: 0; display: flex; flex-direction: column; }
 .writer-upload-copy strong { overflow: hidden; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
 .writer-upload-copy small { color: var(--ink-soft); font-size: .68rem; }
+.writer-media-preview { width: 100%; height: 40px; grid-column: 1 / -1; }
+.writer-video-preview { height: auto; max-height: 360px; border-radius: 7px; background: var(--ink); }
 .writer-insert { position: relative; min-height: 60px; display: flex; align-items: center; }
 .writer-insert::after { content: ""; height: 1px; flex: 1; margin-left: 14px; background: var(--line); }
 .writer-insert-button { width: 46px; height: 46px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #aaa399; border-radius: 50%; color: var(--ink); background: var(--surface); transition: color 150ms ease, background 150ms ease, transform 150ms ease; }
@@ -532,7 +535,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .header-inner { width: calc(100% - 32px); height: 66px; }
   .desktop-nav, .profile-pill span { display: none; }
   .profile-pill { min-width: 44px; justify-content: flex-end; }
-  .mobile-nav { position: fixed; z-index: 50; right: 0; bottom: 0; left: 0; height: calc(var(--nav-height) + env(safe-area-inset-bottom)); padding: 7px 8px env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: rgba(255,252,246,.96); backdrop-filter: blur(18px); }
+  .mobile-nav { position: fixed; z-index: 50; right: 0; bottom: 0; left: 0; height: calc(var(--nav-height) + env(safe-area-inset-bottom)); padding: 7px 8px env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: rgba(255,252,246,.96); backdrop-filter: blur(18px); }
   .mobile-nav a { min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-soft); font-size: .68rem; }
   .mobile-nav a svg { font-size: 1.25rem; }
   .mobile-nav a[aria-current="page"] { color: var(--blue); font-weight: 700; }
@@ -599,6 +602,71 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .network-row > b { display: none; }
 }
 
+/* Open Collective clarity meets a focused GoFundMe contribution flow. */
+.fund-page { min-height: 100dvh; margin-left: 236px; }
+.fund-shell { width: min(1040px, calc(100% - 64px)); margin: 0 auto; padding: 72px 0 100px; }
+.fund-intro { max-width: 650px; margin-bottom: 38px; }
+.fund-intro h1 { margin: 0; font: 650 clamp(3.8rem, 8vw, 7.2rem)/.86 var(--font-serif), serif; letter-spacing: -.055em; }
+.fund-main-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr); gap: 24px; align-items: stretch; }
+.fund-balance, .fund-donate { border: 1.5px solid var(--ink); border-radius: 16px; }
+.fund-balance { min-height: 430px; padding: clamp(28px, 4vw, 48px); display: flex; flex-direction: column; justify-content: center; color: white; background: var(--ink); box-shadow: 7px 7px 0 var(--orange); }
+.fund-balance-icon { width: 30px; height: 30px; margin-bottom: 48px; color: var(--orange); }
+.fund-balance > strong { font: 640 clamp(4.3rem, 8vw, 7rem)/.86 var(--font-serif), serif; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.fund-balance > strong small { font: 650 .19em/1 var(--font-sans), sans-serif; letter-spacing: .04em; }
+.fund-balance > p { margin: 18px 0 0; color: #cbd3d7; }
+.fund-donate { padding: clamp(26px, 4vw, 40px); background: var(--surface); box-shadow: 7px 7px 0 var(--ink); }
+.fund-donate header > span { color: var(--orange-dark); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+.fund-donate h2 { margin: 7px 0 0; font: 640 clamp(2rem, 4vw, 2.8rem)/1 var(--font-serif), serif; letter-spacing: -.035em; }
+.fund-presets { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fund-presets button { min-height: 54px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: white; font-size: .77rem; font-weight: 750; transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease; }
+.fund-presets button span { color: var(--ink-soft); font-size: .67rem; font-weight: 600; }
+.fund-presets button:hover { border-color: #aaa298; }
+.fund-presets button[aria-pressed="true"] { border-color: var(--ink); background: #fff1dd; box-shadow: inset 0 0 0 1px var(--ink); }
+.fund-amount-field { margin-top: 25px; display: block; }
+.fund-amount-field > span { display: block; color: var(--ink); font-size: .76rem; font-weight: 750; }
+.fund-amount-field > div { height: 64px; margin-top: 7px; padding: 0 15px; display: flex; align-items: center; border: 1px solid #aaa399; border-radius: 8px; background: white; }
+.fund-amount-field > div:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(21,89,214,.13); }
+.fund-amount-field input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--ink); background: transparent; font: 650 1.55rem var(--font-serif), serif; font-variant-numeric: tabular-nums; }
+.fund-amount-field b { color: var(--ink-soft); font-size: .74rem; }
+.fund-amount-field small { margin-top: 6px; display: block; color: var(--ink-soft); font-size: .66rem; }
+.fund-anonymous { min-height: 66px; margin: 24px 0; padding: 10px 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.fund-anonymous input { width: 20px; height: 20px; accent-color: var(--ink); }
+.fund-anonymous span { display: flex; flex-direction: column; }
+.fund-anonymous strong { font-size: .78rem; }
+.fund-anonymous small { color: var(--ink-soft); font-size: .68rem; }
+.fund-submit { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1.5px solid var(--ink); border-radius: 8px; color: #17130d; background: var(--orange); box-shadow: 4px 4px 0 var(--ink); font-weight: 780; transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease; }
+.fund-submit:hover:not(:disabled) { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--ink); background: #ff9d2f; }
+.fund-submit:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
+.fund-invoice { text-align: center; }
+.fund-invoice header p { margin: 10px auto 0; color: var(--ink-soft); font-size: .76rem; }
+.fund-qr { width: 180px; height: 180px; margin: 26px auto 20px; display: grid; place-items: center; border: 12px solid white; border-radius: 10px; color: white; background: repeating-conic-gradient(var(--ink) 0 25%, white 0 50%) 0/18px 18px; box-shadow: 0 0 0 1px var(--line); }
+.fund-qr svg { width: 72px; height: 72px; padding: 14px; border-radius: 50%; color: var(--orange); background: var(--ink); }
+.fund-address { width: 100%; min-height: 52px; padding: 0 13px; display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: white; }
+.fund-address span { min-width: 0; flex: 1; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.fund-copy-status { margin: 6px 0 16px; color: var(--green); font-size: .68rem; min-height: 1.1em; }
+.fund-reset { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; border: 0; color: var(--blue); background: transparent; font-size: .75rem; font-weight: 750; }
+
+@media (max-width: 900px) {
+  .fund-page { margin-left: 0; }
+  .fund-shell { width: min(760px, calc(100% - 48px)); padding-top: 56px; }
+  .fund-main-grid { grid-template-columns: 1fr; }
+  .fund-balance { min-height: 340px; }
+}
+
+@media (max-width: 680px) {
+  .fund-shell { width: calc(100% - 32px); padding: 38px 0 52px; }
+  .fund-intro { margin-bottom: 30px; }
+  .fund-intro h1 { font-size: clamp(3.6rem, 18vw, 5rem); }
+  .fund-main-grid { gap: 18px; }
+  .fund-balance, .fund-donate { border-radius: 12px; box-shadow: 4px 4px 0 var(--ink); }
+  .fund-balance { min-height: 300px; padding: 26px 22px; }
+  .fund-balance-icon { margin-bottom: 38px; }
+  .fund-balance > strong { font-size: clamp(3.6rem, 18vw, 5.2rem); }
+  .fund-donate { padding: 27px 20px; }
+  .fund-presets { grid-template-columns: 1fr; }
+  .fund-presets button { min-height: 48px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
@@ -625,4 +693,78 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .profile-article-row { min-height: 138px; padding-inline: 2px; grid-template-columns: minmax(0,1fr) 22px; gap: 10px; }
   .profile-article-earnings { grid-column: 1; align-items: flex-start; }
   .profile-article-row > svg { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* Protected account creation */
+.signup-page { min-height: 100dvh; background: var(--surface); }
+.signup-context { min-height: 100dvh; padding: clamp(30px,5vw,72px); display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: var(--ink); }
+.signup-wordmark { width: fit-content; font: 700 2rem/1 var(--font-serif), serif; letter-spacing: -.04em; }
+.signup-wordmark span { color: var(--orange); }
+.signup-context > div { max-width: 470px; }
+.signup-shield { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid #52616c; border-radius: 50%; color: var(--orange); }
+.signup-context h1 { margin: 34px 0 20px; font: 620 clamp(3.5rem,6vw,6.6rem)/.88 var(--font-serif), serif; letter-spacing: -.055em; }
+.signup-context p { max-width: 430px; margin: 0; color: #c7d0d5; font-size: .96rem; line-height: 1.65; }
+.signup-context > small { color: #aeb9bf; }
+.signup-context > small button { min-height: 44px; padding: 0 4px; border: 0; color: #fff; background: transparent; font-weight: 700; }
+.signup-panel { min-height: 100dvh; padding: 40px 24px 72px; display: grid; place-items: center; }
+.signup-form-wrap { width: min(600px,100%); }
+.signup-simple-header { margin-bottom: 70px; display: flex; align-items: center; justify-content: space-between; }
+.signup-simple-header .signup-wordmark { color: var(--ink); }
+.signup-simple-header > button { min-height: 44px; padding: 0 12px; border: 0; color: var(--ink-soft); background: transparent; font-size: .76rem; font-weight: 700; }
+.signup-simple-header > button:hover { color: var(--ink); }
+.signup-progress { margin-bottom: 42px; }
+.signup-progress > span { color: var(--ink-soft); font-size: .72rem; font-weight: 700; }
+.signup-progress > div { height: 3px; margin-top: 11px; overflow: hidden; background: #e5e0d8; }
+.signup-progress i { height: 100%; display: block; background: var(--orange); transition: width 240ms ease; }
+.signup-step { margin: 0; padding: 0; border: 0; }
+.signup-step legend { padding: 0; font: 640 clamp(2.5rem,5vw,3.8rem)/.95 var(--font-serif), serif; letter-spacing: -.04em; }
+.signup-step > p { margin: 12px 0 30px; color: var(--ink-soft); }
+.signup-role-grid { margin: 28px 0 26px; display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.signup-role-grid button { min-height: 68px; padding: 12px; display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: transparent; text-align: left; }
+.signup-role-grid button[aria-pressed="true"] { border-color: var(--ink); background: #f3efe7; box-shadow: inset 0 0 0 1px var(--ink); }
+.signup-role-grid button > svg { color: var(--blue); }
+.signup-role-grid button span { display: flex; flex-direction: column; }
+.signup-role-grid strong { font-size: .84rem; }
+.signup-role-grid small { color: var(--ink-soft); font-size: .68rem; }
+.signup-field { margin-top: 20px; display: block; }
+.signup-field > span:first-child { margin-bottom: 7px; display: flex; justify-content: space-between; color: var(--ink); font-size: .76rem; font-weight: 700; }
+.signup-field i { color: var(--ink-soft); font-size: .65rem; font-style: normal; font-weight: 500; }
+.signup-field > input, .signup-field textarea, .signup-password, .signup-handle { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid #bdb7ae; border-radius: 8px; outline: 0; color: var(--ink); background: #fff; font-size: 1rem; }
+.signup-field textarea { padding-block: 12px; resize: vertical; }
+.signup-field > input:focus, .signup-field textarea:focus, .signup-password:focus-within, .signup-handle:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(21,89,214,.13); }
+.signup-field > small { margin-top: 6px; display: block; color: var(--ink-soft); font-size: .66rem; }
+.signup-password, .signup-handle { padding-right: 4px; display: flex; align-items: center; }
+.signup-password input, .signup-handle input { min-width: 0; height: 46px; flex: 1; border: 0; outline: 0; background: transparent; }
+.signup-password button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; color: var(--ink-soft); background: transparent; }
+.signup-handle b { color: var(--ink-soft); }
+.signup-upload { min-height: 92px; margin-top: 24px; padding: 16px; display: flex; align-items: center; gap: 13px; border: 1px dashed #aaa399; border-radius: 9px; color: var(--blue); background: #faf7f0; cursor: pointer; }
+.signup-upload span { display: flex; flex-direction: column; }
+.signup-upload strong { max-width: 360px; overflow: hidden; color: var(--ink); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.signup-upload small { color: var(--ink-soft); font-size: .68rem; }
+.signup-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.signup-verification-note { padding: 12px; display: flex; align-items: center; gap: 8px; border-radius: 7px; color: var(--green) !important; background: #e7f2ed; font-size: .7rem; }
+.signup-form-actions { margin-top: 36px; padding-top: 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
+.signup-back, .signup-next { min-height: 48px; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; font-size: .78rem; font-weight: 750; }
+.signup-back { border: 0; color: var(--ink-soft); background: transparent; }
+.signup-next { border: 0; color: white; background: var(--ink); }
+.signup-back:hover { color: var(--ink); background: #f1ede5; }
+.signup-next:hover { background: #2a3741; }
+.signup-complete { width: min(540px,calc(100% - 32px)); margin: auto; padding: 54px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: center; }
+.signup-complete > span { width: 54px; height: 54px; margin: auto; display: grid; place-items: center; border-radius: 50%; color: var(--green); background: #e3f1eb; }
+.signup-complete h1 { margin: 26px 0 10px; font: 640 3.2rem/1 var(--font-serif),serif; letter-spacing: -.04em; }
+.signup-complete p { color: var(--ink-soft); }
+.signup-complete a { min-height: 48px; margin-top: 20px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; color: white; background: var(--ink); font-weight: 700; }
+
+@media (max-width: 860px) {
+  .signup-panel { padding: 30px 24px 72px; }
+  .signup-simple-header { margin-bottom: 52px; }
+}
+
+@media (max-width: 520px) {
+  .signup-panel { padding-inline: 16px; }
+  .signup-role-grid { grid-template-columns: 1fr; }
+  .signup-role-grid button { min-height: 58px; }
+  .signup-form-actions { gap: 8px; }
+  .signup-next { margin-left: auto; }
+  .signup-complete { padding: 38px 24px; }
 }
