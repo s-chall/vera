@@ -3,6 +3,8 @@ import "@fontsource-variable/dm-sans";
 import "@fontsource-variable/newsreader";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
+import { VeraProvider } from "@/lib/vera";
+import { SignupGate } from "@/components/signup-gate";
 
 export const metadata: Metadata = {
   title: { default: "Vera — Protected reporting", template: "%s — Vera" },
@@ -14,8 +16,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
-        <SiteHeader />
-        {children}
+        <VeraProvider>
+          <SignupGate>
+            <SiteHeader />
+            {children}
+          </SignupGate>
+        </VeraProvider>
       </body>
     </html>
   );

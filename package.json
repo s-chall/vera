@@ -6,11 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:signup": "node tests/signup.api.mjs",
+    "test:ui": "node tests/signup.ui.mjs",
+    "db:reset": "supabase db reset"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource-variable/newsreader": "^5.2.8",
+    "@supabase/supabase-js": "^2.117.1",
     "lucide-react": "1.48.0",
     "next": "16.3.6",
     "react": "19.3.0",
@@ -20,6 +24,8 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "playwright": "^1.63.0",
+    "supabase": "^2.117.0",
     "typescript": "^5.9.0"
   }
 }
