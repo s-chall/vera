@@ -198,9 +198,6 @@ export function NewsFeed() {
                     <span className="news-verified">Verified</span>
                     <time className="news-date">{item.date}</time>
                   </div>
-                  <Link className="news-fund-link" href="/fund">
-                    Fund
-                  </Link>
                 </header>
 
                 <Link className="news-story-link" href={articleHref}>

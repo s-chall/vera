@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUserRound, FilePenLine, Landmark, Newspaper, Search } from "lucide-react";
+import { CircleUserRound, FilePenLine, Newspaper, Search } from "lucide-react";
 
 const links = [
   { href: "/", label: "News", icon: Newspaper },
-  { href: "/fund", label: "Fund", icon: Landmark },
   { href: "/write", label: "Write", icon: FilePenLine },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];

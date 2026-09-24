@@ -1,9 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import { ArticleEditor } from "@/components/article-editor";
 
-import { useState } from "react";
-import { Bold, CheckCircle2, FilePlus2, ImagePlus, Link2, Quote, ShieldCheck } from "lucide-react";
+export const metadata: Metadata = {
+  title: "Write",
+  description: "Write and securely publish protected reporting with Vera.",
+};
 
 export default function WritePage() {
-  const [message, setMessage] = useState("");
-  return <main id="main-content" className="page-shell write-page"><header className="composer-header"><div><span className="overline">Private draft</span><h1>New investigation</h1></div><span><ShieldCheck aria-hidden="true"/>Identity shield active</span></header><div className="composer-layout"><section className="editor-card"><label htmlFor="headline">Headline</label><input id="headline" defaultValue="Untitled investigation"/><p>Give readers a clear, specific reason to open this story.</p><label className="lead-upload"><ImagePlus aria-hidden="true"/><strong>Add a lead image or artwork</strong><span>Metadata will be removed before upload</span><input type="file" accept="image/*"/></label><label htmlFor="story">Story</label><textarea id="story" placeholder="Begin your reporting…"/><div className="editor-toolbar" aria-label="Editor tools"><button aria-label="Bold"><Bold/></button><button aria-label="Add link"><Link2/></button><button aria-label="Add quote"><Quote/></button><button aria-label="Attach source"><FilePlus2/></button></div></section><aside className="publish-panel"><span className="overline">Before publishing</span><h2>Protection check</h2><ul><li><CheckCircle2 aria-hidden="true"/>Source identifiers separated</li><li><CheckCircle2 aria-hidden="true"/>Document metadata scrubbed</li><li><CheckCircle2 aria-hidden="true"/>Funding disclosure attached</li></ul><button className="button button-primary" onClick={() => setMessage("Draft is ready for a secure preview.")}>Preview article</button><button className="button button-accent" onClick={() => setMessage("Publishing will connect to the backend next.")}>Publish securely</button>{message ? <p className="form-message" role="status">{message}</p> : null}</aside></div></main>;
+  return <ArticleEditor />;
 }
