@@ -169,6 +169,15 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   check('a funder sees no articles at all under the current rules',
     funderFeed.data?.length === 0, 'funder sees ' + funderFeed.data?.length);
 
+  // Clean up after ourselves: a published article outlives the run and turns up
+  // in the app as a stray story under a generated alias.
+  if (post.data?.[0]?.id) {
+    await api('/rest/v1/articles?id=eq.' + post.data[0].id, { token: jrToken, method: 'DELETE' });
+  }
+  const leftovers = await api('/rest/v1/articles?select=slug', { token: adminToken });
+  check('the suite leaves no stray articles behind', leftovers.data?.length === 1,
+    'articles remaining: ' + leftovers.data?.length);
+
   report();
 })().catch((e) => { console.error(e); report(); });
 
