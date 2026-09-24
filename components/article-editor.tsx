@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import type { ChangeEvent, DragEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useVera } from "@/lib/vera";
 
 type InsertKind = "image" | "audio" | "video" | "document" | "source" | "quote" | "divider" | "embed";
 
@@ -72,7 +74,24 @@ const normalizeUrl = (value: string) => {
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
 
+const initials = (alias: string) =>
+  alias.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+
+/** contentEditable gives us markup; the store wants one paragraph per line. */
+function readBody(node: HTMLElement | null) {
+  if (!node) return "";
+  const blocks = node.querySelectorAll<HTMLElement>("p, div, li, blockquote");
+  const lines = blocks.length
+    ? [...blocks].map((el) => el.innerText.trim())
+    : node.innerText.split("\n").map((line) => line.trim());
+  return lines.filter(Boolean).join("\n");
+}
+
 export function ArticleEditor() {
+  const vera = useVera();
+  const router = useRouter();
+  const [publishing, setPublishing] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [saveState, setSaveState] = useState<"Saved" | "Saving…">("Saved");
@@ -244,9 +263,42 @@ export function ArticleEditor() {
     requestAnimationFrame(() => publishButtonRef.current?.focus());
   };
 
-  const publishArticle = () => {
-    setPublishOpen(false);
-    setNotice("Article published in this preview. No data was sent.");
+  const publishArticle = async () => {
+    if (publishing) return;
+    const body = readBody(bodyRef.current);
+
+    if (!title.trim()) {
+      setPublishOpen(false);
+      setFailed(true);
+      setNotice("Add a title before publishing.");
+      return;
+    }
+    if (!body) {
+      setPublishOpen(false);
+      setFailed(true);
+      setNotice("Write something before publishing.");
+      return;
+    }
+
+    setPublishing(true);
+    setFailed(false);
+    setNotice("Publishing…");
+    try {
+      const article = await vera.publish({ title: title.trim(), body, dek: subtitle });
+      setPublishOpen(false);
+      if (article) {
+        router.push(`/articles/${article.slug}`);
+        return;
+      }
+      setNotice("Published.");
+    } catch (error) {
+      setPublishOpen(false);
+      setFailed(true);
+      setNotice(error instanceof Error ? error.message : String(error));
+      return;
+    } finally {
+      setPublishing(false);
+    }
     setSaveState("Saved");
     requestAnimationFrame(() => publishButtonRef.current?.focus());
   };
@@ -283,9 +335,11 @@ export function ArticleEditor() {
 
       <section className="writer-editor" aria-label="Article editor">
         <div className="writer-identity">
-          <span className="writer-avatar" aria-hidden="true">QC</span>
+          <span className={`writer-avatar${vera.me ? ` identity-seal ${vera.me.seal}` : ""}`} aria-hidden="true">
+            {vera.me ? initials(vera.me.alias) : "··"}
+          </span>
           <span className="writer-identity-copy">
-            <strong className="writer-alias">Quiet Current</strong>
+            <strong className="writer-alias">{vera.me?.alias ?? "…"}</strong>
             <span className="writer-protected"><ShieldCheck aria-hidden="true" size={14} /> Identity protected</span>
           </span>
         </div>
@@ -416,7 +470,7 @@ export function ArticleEditor() {
         <input className="writer-visually-hidden" ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" multiple tabIndex={-1} onChange={handleFileInput("document")} />
         <input className="writer-visually-hidden" ref={sourceInputRef} type="file" multiple tabIndex={-1} onChange={handleFileInput("source")} />
 
-        <p className="writer-status" role="status" aria-live="polite">{notice}</p>
+        <p className={`writer-status${failed ? " writer-status--error" : ""}`} role="status" aria-live="polite">{notice}</p>
       </section>
 
       {publishOpen ? (
@@ -433,13 +487,13 @@ export function ArticleEditor() {
             <h2 className="writer-dialog-title" id={publishTitleId}>Ready to publish?</h2>
             <p className="writer-dialog-description" id={publishDescriptionId}>Vera checks the details that protect you before the story goes live.</p>
             <ul className="writer-checks">
-              <li><Check aria-hidden="true" size={17} /><span><strong>Alias confirmed</strong><small>Quiet Current appears as the author.</small></span></li>
-              <li><Check aria-hidden="true" size={17} /><span><strong>Metadata removed</strong><small>Uploaded media will not expose device details.</small></span></li>
-              <li><Check aria-hidden="true" size={17} /><span><strong>Sources separated</strong><small>Private source files will not be published.</small></span></li>
+              <li><Check aria-hidden="true" size={17} /><span><strong>Alias confirmed</strong><small>{vera.me?.alias ?? "Your alias"} appears as the author.</small></span></li>
+              <li><Check aria-hidden="true" size={17} /><span><strong>Byline only</strong><small>Your email is never shown beside your work.</small></span></li>
+              <li><Check aria-hidden="true" size={17} /><span><strong>Text only</strong><small>Images are not uploaded yet, so no file metadata is published.</small></span></li>
             </ul>
             <div className="writer-dialog-actions">
               <button className="writer-button writer-button--quiet" ref={cancelButtonRef} type="button" onClick={closePublish}>Cancel</button>
-              <button className="writer-button writer-button--publish" type="button" onClick={publishArticle}>Publish article</button>
+              <button className="writer-button writer-button--publish" type="button" disabled={publishing} onClick={() => void publishArticle()}>{publishing ? "Publishing…" : "Publish article"}</button>
             </div>
           </section>
         </div>

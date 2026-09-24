@@ -67,7 +67,7 @@ type Vera = State & {
   signOut: () => Promise<void>;
   setVerified: (journalistId: string, verified: boolean) => Promise<void>;
   toggleFollow: (id: string) => Promise<void>;
-  publish: (input: { title: string; body: string }) => Promise<Article | null>;
+  publish: (input: { title: string; body: string; dek?: string }) => Promise<Article | null>;
   unpublish: (id: string) => Promise<void>;
   say: (message: string | null, tone?: "error" | "success") => void;
 };
@@ -429,7 +429,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         await load();
       }),
 
-      publish: async ({ title, body }) => {
+      publish: async ({ title, body, dek }) => {
         const db = mustHaveDb();
         if (!state.meId) throw new Error("Sign in first.");
         const paragraphs = body.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -442,7 +442,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           journalist_id: state.meId,
           slug,
           title,
-          dek: firstProse || "Filed without a summary.",
+          dek: dek?.trim() || firstProse || "Filed without a summary.",
           body: paragraphs,
           art: "paper",
           category: "Filed",
