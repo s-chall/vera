@@ -72,7 +72,7 @@ BITCOIN_NETWORK=signet npm run bitcoin:sync
 npm run dev   # open /fund
 ```
 
-Primary path: BIP21 / QR on Signet. Fiat on-ramps stay under **Advanced**. Production mainnet: `BITCOIN_NETWORK=mainnet` + watch-only multisig address.
+Primary path: BIP21 / QR on Signet. Chat at `/chat` follows a contributor deposit address into epoch payouts (pseudonyms). See [docs/HACKATHON_DEMO.md](docs/HACKATHON_DEMO.md). Production mainnet: `BITCOIN_NETWORK=mainnet` + watch-only multisig address.
 
 ## Deployment
 

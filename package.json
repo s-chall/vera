@@ -13,6 +13,7 @@
     "db:status": "supabase status",
     "db:test": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/tests/payout_engine.sql",
     "db:seed-payout": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/seeds/local_payout_epoch.sql",
+    "db:seed-chat": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/seeds/local_chat_demo.sql",
     "mock:adapter": "node supabase/mocks/contract-adapter.mjs",
     "functions:serve": "supabase functions serve finalize-payout --env-file supabase/.env.local --no-verify-jwt",
     "signet:init": "BITCOIN_NETWORK=signet node scripts/bitcoin-init-pool.mjs",
@@ -22,7 +23,8 @@
     "signet:down": "docker compose -f docker-compose.signet.yml down",
     "signet:logs": "docker compose -f docker-compose.signet.yml logs -f bitcoind-signet",
     "bitcoin:init": "node scripts/bitcoin-init-pool.mjs",
-    "bitcoin:sync": "node scripts/bitcoin-sync-pool.mjs"
+    "bitcoin:sync": "node scripts/bitcoin-sync-pool.mjs",
+    "media:sync": "node scripts/media-sync.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.2.8",

@@ -31,6 +31,22 @@ if (!poolPath) {
 const pool = JSON.parse(readFileSync(poolPath, "utf8"));
 const address = process.env.BITCOIN_POOL_ADDRESS || pool.address;
 
+async function resolveSender(txid: string) {
+  try {
+    const res = await fetch(`${MEMPOOL}/tx/${txid}`);
+    if (!res.ok) return null;
+    const tx = await res.json();
+    const vins = Array.isArray(tx.vin) ? tx.vin : [];
+    for (const vin of vins) {
+      const addr = vin?.prevout?.scriptpubkey_address;
+      if (typeof addr === "string" && addr.length > 0) return addr;
+    }
+  } catch {
+    // Sender resolution is best-effort for Chat transparency.
+  }
+  return null;
+}
+
 async function fetchMempool() {
   const [summaryRes, utxoRes] = await Promise.all([
     fetch(`${MEMPOOL}/address/${address}`),
@@ -44,6 +60,20 @@ async function fetchMempool() {
   const mem = summary.mempool_stats || {};
   const confirmed = (chain.funded_txo_sum || 0) - (chain.spent_txo_sum || 0);
   const unconfirmed = (mem.funded_txo_sum || 0) - (mem.spent_txo_sum || 0);
+
+  const mapped = [];
+  for (const u of utxos) {
+    const sender_address = await resolveSender(u.txid);
+    mapped.push({
+      txid: u.txid,
+      vout: u.vout,
+      amount_sats: u.value,
+      confirmed: Boolean(u.status?.confirmed),
+      block_height: u.status?.block_height ?? null,
+      sender_address,
+    });
+  }
+
   return {
     address,
     network: pool.network || network,
@@ -51,13 +81,7 @@ async function fetchMempool() {
     unconfirmed_sats: unconfirmed,
     balance_sats: confirmed + unconfirmed,
     tx_count: (chain.tx_count || 0) + (mem.tx_count || 0),
-    utxos: utxos.map((u) => ({
-      txid: u.txid,
-      vout: u.vout,
-      amount_sats: u.value,
-      confirmed: Boolean(u.status?.confirmed),
-      block_height: u.status?.block_height ?? null,
-    })),
+    utxos: mapped,
     synced_at: new Date().toISOString(),
     source: "mempool.space",
   };
@@ -98,6 +122,7 @@ async function upsertSupabase(snapshot) {
           confirmed: u.confirmed,
           block_height: u.block_height,
           address: snapshot.address,
+          sender_address: u.sender_address,
         })),
       ),
     });

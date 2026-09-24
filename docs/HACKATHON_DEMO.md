@@ -48,17 +48,47 @@ Open **http://localhost:4174/fund** (or whichever port Next prints).
 - Point at trust bullets: watch-only, public txs, cosigned payouts roadmap.
 - Click a UTXO → prove it on-chain live.
 
-### C. Optional Advanced fiat
+### C. Chat — “I funded this epoch”
 
-Only if you configured MoonPay/Stripe keys. Not required for Bitcoin judges.
+```bash
+npm run db:seed-payout   # if no epoch yet
+npm run db:seed-chat     # demo deposit sender + media hits
+```
+
+1. Open `/chat`
+2. Paste demo address: `tb1qdem0c0ntr1but0rvera0000000000000`
+3. Click **Follow** — brief shows your deposit + pseudonym payouts
+4. Try prompts: “Did I fund this epoch?”, “Which outlets reused reporting?”
+5. Click **Refresh NPR + BBC Mundo** (or `npm run media:sync`) to pull live RSS into `media_hits`
+
+Optional local model (Maple / Ollama):
+
+```bash
+# Ollama example
+ollama pull llama3.2
+# .env.local
+# OLLAMA_BASE_URL=http://127.0.0.1:11434
+# OLLAMA_MODEL=llama3.2
+#
+# Or Maple-compatible OpenAI endpoint:
+# MAPLE_BASE_URL=http://127.0.0.1:8080
+# MAPLE_MODEL=maple
+```
+
+Without a local model, Chat still answers from grounded templates over payout + media caches.
 
 ## Demo checklist
 
 - [ ] Signet address in UI (`tb1q…`)
-- [ ] Faucet link visible
 - [ ] Pay with Bitcoin is the primary orange button
-- [ ] Advanced fiat is collapsed
-- [ ] After a faucet send, UTXO list updates
+- [ ] After a faucet send, deposits update
+- [ ] `/chat` Follow shows funded epoch + journalist aliases
+- [ ] Media refresh pulls NPR + BBC Mundo (or seed fixtures)
+- [ ] Prompt answers show `ollama` / `maple` / `template` meta
+
+Real deposits: after faucet → `/fund` pay → `BITCOIN_NETWORK=signet npm run bitcoin:sync`, paste the **sending** wallet address (sync stores `sender_address` from the tx).
+
+Note: Reuters and Efecto Cocuyo block automated bots (401/403), so the hackathon allowlist is **NPR (US)** + **BBC Mundo (Spanish LatAm / VE coverage)**.
 
 ## Troubleshooting
 
@@ -68,3 +98,4 @@ Only if you configured MoonPay/Stripe keys. Not required for Bitcoin judges.
 | Balance stuck at 0 | Confirm tx on Signet explorer; run `bitcoin:sync`; wait for poll |
 | Wallet won't pay | Must be a **Signet** wallet, not mainnet |
 | API 503 | Run `BITCOIN_NETWORK=signet npm run bitcoin:init` |
+| Chat can't find my address | Sync after deposit; sender comes from tx inputs. Or use `npm run db:seed-chat` |
