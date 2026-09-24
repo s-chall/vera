@@ -36,6 +36,8 @@ export function SignupGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   if (pathname === "/signup") return <>{children}</>;
+  // Ops portal is gated by ADMIN_PAYOUT_SECRET on the API, not account signup.
+  if (pathname.startsWith("/admin")) return <>{children}</>;
 
   return (
     <main id="main-content" className="auth-screen">
