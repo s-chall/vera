@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fafaf7" />
+    <title>Vera — Independent reporting, protected</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="masthead">
+        <button class="icon-button menu-button" aria-label="Open menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h16M4 12h11M4 16.5h16" /></svg>
+        </button>
+        <a class="brand" href="#" aria-label="Vera home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>vera</span>
+        </a>
+        <button class="icon-button inbox-button" aria-label="Open notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+          <span class="notification-dot"></span>
+        </button>
+      </header>
+
+      <main>
+        <section class="composer" aria-label="Create an article">
+          <button class="author-seal seal-a" aria-label="Your profile"><span></span></button>
+          <button class="composer-prompt" id="openComposer">
+            <span>Post an article</span>
+            <small>Write under your protected identity</small>
+          </button>
+          <button class="compose-button" id="openComposerIcon" aria-label="Write a new article">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5.5 4 4M4 20l3.6-.7L19 7.9a1.7 1.7 0 0 0 0-2.4l-.5-.5a1.7 1.7 0 0 0-2.4 0L4.7 16.4 4 20Z" /></svg>
+          </button>
+        </section>
+
+        <nav class="feed-tabs" aria-label="Article feed">
+          <button class="feed-tab active" data-filter="following">Following</button>
+          <button class="feed-tab" data-filter="latest">Latest</button>
+        </nav>
+
+        <section class="feed" id="feed" aria-live="polite">
+          <article class="story" data-order="2">
+            <div class="story-copy">
+              <header class="byline">
+                <span class="mini-seal seal-b"><span></span></span>
+                <span class="author-name">Northstar</span>
+                <span class="verified" title="Identity verified privately">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>
+                </span>
+                <time datetime="2026-09-24T09:17">9:17 AM</time>
+              </header>
+              <h2>Inside the towns being erased from the official map</h2>
+              <p>Residents describe quiet evictions, missing records, and the roads that disappear before dawn.</p>
+              <footer class="story-meta"><span>6 min read</span><span>Field report</span></footer>
+            </div>
+            <div class="story-art art-map" role="img" aria-label="Abstract map with routes and location markers">
+              <svg viewBox="0 0 112 112" aria-hidden="true"><path class="land" d="M-8 16c19 4 27-7 42-2s16 17 33 16 24-11 48-6v97H-8Z"/><path class="route" d="M-8 91c26-7 35-34 58-35 19 0 28 20 67 11"/><path class="route thin" d="M9 18c22 14 28 37 24 94M80-3c-7 28-3 47 32 58"/><circle cx="50" cy="56" r="5"/></svg>
+            </div>
+          </article>
+
+          <article class="story" data-order="4">
+            <div class="story-copy">
+              <header class="byline">
+                <span class="mini-seal seal-c"><span></span></span>
+                <span class="author-name">Mothlight</span>
+                <span class="verified" title="Identity verified privately">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>
+                </span>
+                <time datetime="2026-09-24T08:42">8:42 AM</time>
+              </header>
+              <h2>The night shift keeping the city online</h2>
+              <p>When the grid fails, a hidden network of technicians crosses checkpoints to restore it.</p>
+              <footer class="story-meta"><span>4 min read</span><span>Dispatch</span></footer>
+            </div>
+            <div class="story-art art-night" role="img" aria-label="Abstract city lights at night"><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+
+          <article class="story" data-order="1">
+            <div class="story-copy">
+              <header class="byline">
+                <span class="mini-seal seal-d"><span></span></span>
+                <span class="author-name">Red Cedar</span>
+                <span class="verified" title="Identity verified privately">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>
+                </span>
+                <time datetime="2026-09-24T07:58">7:58 AM</time>
+              </header>
+              <h2>Who profits when the water stops?</h2>
+              <p>Public invoices reveal a private supplier charging three times the regional average.</p>
+              <footer class="story-meta"><span>8 min read</span><span>Investigation</span></footer>
+            </div>
+            <div class="story-art art-water" role="img" aria-label="Abstract illustration of rippling water"><span></span></div>
+          </article>
+
+          <article class="story" data-order="3">
+            <div class="story-copy">
+              <header class="byline">
+                <span class="mini-seal seal-e"><span></span></span>
+                <span class="author-name">Signal 29</span>
+                <span class="verified" title="Identity verified privately">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 4.5v4.4c0 4.1-2.5 7-6 8.9-3.5-1.9-6-4.8-6-8.9V4.5L10 2.2Z"/><path d="m7.2 10 1.8 1.8 3.9-4"/></svg>
+                </span>
+                <time datetime="2026-09-23T21:26">Yesterday</time>
+              </header>
+              <h2>A school, a server room, and 12,000 missing names</h2>
+              <p>We recovered the database officials said never existed. This is what it contains.</p>
+              <footer class="story-meta"><span>11 min read</span><span>Data</span></footer>
+            </div>
+            <div class="story-art art-data" role="img" aria-label="Abstract data grid"><span></span></div>
+          </article>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary navigation">
+        <a href="#" class="nav-item active" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 10h16M4 14.5h10M4 19h7" /></svg>
+          <span>Articles</span>
+        </a>
+        <button class="nav-item coming-soon" data-page="Fund">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.8a1.8 1.8 0 0 1 0 3.6H9.8" /></svg>
+          <span>Fund</span>
+        </button>
+        <button class="nav-item coming-soon" data-page="Profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" /></svg>
+          <span>Profile</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="modal-backdrop" id="composerModal" hidden>
+      <section class="composer-modal" role="dialog" aria-modal="true" aria-labelledby="composerTitle">
+        <header>
+          <button class="text-button" id="closeComposer">Cancel</button>
+          <h2 id="composerTitle">New article</h2>
+          <button class="publish-button" id="publishArticle">Publish</button>
+        </header>
+        <div class="privacy-note">
+          <span class="mini-seal seal-a"><span></span></span>
+          <p><strong>Posting as Quiet Current</strong><br />Your public identity stays separate from your wallet.</p>
+        </div>
+        <label>Headline<input id="headlineInput" type="text" placeholder="Give readers the essential story" /></label>
+        <label>Article<textarea id="articleInput" rows="9" placeholder="Start writing…"></textarea></label>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
