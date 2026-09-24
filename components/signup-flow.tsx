@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useVera, SEALS, ALIAS_SHAPE } from "@/lib/vera";
 import type { AccountType } from "@/lib/types";
+import { VeraMark } from "@/components/vera-mark";
 
 const ROLES: { id: AccountType; label: string; icon: typeof FileCheck2; blurb: string }[] = [
   { id: "journalist", label: "Journalist", icon: FileCheck2, blurb: "Publish under a protected alias. Verified against the CNP register." },
@@ -123,7 +124,12 @@ export function SignupFlow() {
       <section className="signup-panel">
         <div className="signup-form-wrap">
           <div className="signup-simple-header">
-            <Link className="signup-wordmark" href="/">Vera<span aria-hidden="true">.</span></Link>
+            <Link className="signup-wordmark" href="/" aria-label="Vera home">
+              <VeraMark className="wordmark-mark" />
+              <span className="wordmark-text">
+                Vera<span aria-hidden="true">.</span>
+              </span>
+            </Link>
             <Link href="/">Sign in</Link>
           </div>
           <header className="signup-progress">

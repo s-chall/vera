@@ -1,4 +1,4 @@
-# Reporting fund
+# Total Pool
 
 ## Purpose
 
@@ -6,10 +6,11 @@ A public-pool contribution page that combines Open Collective's treasury clarity
 
 ## Content hierarchy
 
-1. Reporting fund title.
-2. Current Bitcoin balance and approximate USD value.
+1. Total Pool title (no marketing dek).
+2. Current Bitcoin balance and approximate USD value; quiet “View address” link.
 3. Contribution amount presets, custom amount, and anonymous toggle.
 4. Bitcoin invoice after submission.
+5. Recent deposits appear under the balance only when UTXOs exist — no trust/marketing copy.
 
 ## Visual rules
 
