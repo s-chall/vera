@@ -60,6 +60,18 @@ That account comes from `supabase/seed-local-admin.sql`, which runs only because
 To make one on a hosted project, sign up normally and set `is_admin` with
 `service_role`.
 
+**Demo accounts**, all with password `vera-demo-2026`:
+
+| Email | Account |
+|---|---|
+| `johan@vera.test` | Johan Alvarez, verified journalist who owns the example stories |
+| `journalist@vera.test` | Ash Meridian, verified journalist |
+| `desk@nytimes.com` | Times Desk, media organisation |
+| `funder@vera.test` | Quiet Backer, funder |
+
+These come from `supabase/seed-local-demo.sql` and
+`supabase/seeds/local_johan_account.sql`, both local only.
+
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
 - **Journalist** — two steps, then a CNP number and cédula are checked live
