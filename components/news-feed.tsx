@@ -124,17 +124,17 @@ export function NewsFeed() {
 
                   <Link className="news-story-link" href={href}>
                     <h2 className="news-headline">{article.title}</h2>
-                    <p className="news-summary">{article.dek}</p>
+                    {article.dek ? <p className="news-summary">{article.dek}</p> : null}
                   </Link>
 
-                  {hasPhoto(article.slug, article.heroImageUrl) ? (
+                  {hasPhoto(article.slug, article.leadImage?.url ?? article.heroImageUrl) ? (
                     <Link className="news-image-link" href={href} aria-label={`Read ${article.title}`}>
-                      <ArtBlock slug={article.slug} kind={article.art}
+                      <ArtBlock slug={article.slug} kind={article.art} uploaded={article.leadImage}
                         url={article.heroImageUrl} alt={article.heroImageAlt}
                         sizes="(max-width: 720px) 100vw, 640px" />
                       <span className="news-image-caption">
                         {article.title}
-                        {article.heroImageCredit ? ` · ${article.heroImageCredit}` : ""}
+                        {!article.leadImage?.url && article.heroImageCredit ? ` · ${article.heroImageCredit}` : ""}
                       </span>
                     </Link>
                   ) : null}

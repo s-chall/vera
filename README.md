@@ -113,14 +113,23 @@ having no effect.
 ## Tests
 
 ```bash
-npm run db:reset && npm run test:signup     # 30 checks, access control
+npm run db:reset && npm run test:signup     # 32 checks, access control
 npm run db:reset && npm run test:accounts   # 36 checks, account types and verification
-npm run db:reset && npm run test:ui         # 25 checks, real browser, needs npm run dev
+npm run db:reset && npm run test:ui         # 21 checks, real browser, needs npm run dev
+npm run test:publishing                      # 60 checks (test file not yet in the repo), publish_article and image access
+npm run test:publishing-ui                   # 69 checks (test file not yet in the repo), real browser, needs npm run dev
+npm run test:body                            # 76 checks (test file not yet in the repo), the stored body format; no stack needed
 ```
 
 Each asserts on the seeded state, so reset between them. `test:ui` drives
 Chromium through all three signup flows and needs the dev server already
-running.
+running. `test:accounts` needs `VERA_CNP_HMAC_KEY` in `supabase/functions/.env`
+(any random value works locally), or the verification checks fail with a 500.
+`test:publishing` cleans up after itself. `test:publishing-ui` signs in as the
+demo accounts, writes, pastes, publishes, checks the uploaded image bytes carry
+no EXIF, and unpublishes what it made. If Playwright's own Chromium build is
+missing, point `VERA_CHROMIUM` at any installed Chromium binary instead of
+downloading one.
 
 ---
 
@@ -187,6 +196,8 @@ is a breach, not a bug.
 app/                     routes: news, article, fund, write, profile, signup
 components/              feed, editor, profile, fund, signup flow, sign-in gate
 lib/vera.tsx             session, data loading, auth, publishing
+lib/article-body.ts      the stored article format: parse, serialize, editor DOM
+lib/scrub-image.ts       re-encodes images in the browser before upload
 lib/supabase.ts          browser client
 supabase/migrations/     payout engine first, then identity, accounts, visibility
 supabase/functions/      submit-verification, review-verification, finalize-payout
@@ -267,16 +278,38 @@ verification is later removed can still take their reporting down.
 Journalist-authored work defaults to `media_only`; everything else is `members`.
 Media organisations and admins read everything.
 
-**Nobody except media organisations and admins can read anything.** Only verified
-journalists can publish, their work defaults to `media_only`, and the read policy
-admits media organisations and admins. So journalists cannot read each other and
-funders see nothing at all, ever. The `members` visibility class is now
-unreachable, since nothing can create an article that carries it.
+**Journalists cannot read each other, and funders see only what a journalist
+opens up.** Only verified journalists can publish, and their work defaults to
+`media_only`, which media organisations and admins can read. The publish dialog
+lets the author widen a piece to all members instead; nothing else creates a
+`members` article. There are tests pinning this so it cannot drift unnoticed. If
+journalists should read each other by default, it is one line in
+`202609240006_article_visibility.sql`.
 
-There are tests pinning this so it cannot drift unnoticed, but it needs a
-decision: either let journalists read each other, or collapse the distinction and
-let every account read every published article. One line in
-`202609240006_article_visibility.sql` either way.
+### Publishing
+
+`/write` files through one call, `publish_article()`, which inserts the article
+and attaches its images in a single transaction, so readers never see a
+half-published piece. It is `SECURITY INVOKER`: every write goes through the
+same policies a direct insert would.
+
+- **Body format.** `articles.body` stays `text[]`, one block per entry: `> `
+  quote, `## ` heading, `---` divider, anything else a paragraph. Inline
+  formatting is a tiny tag set (`<b>`, `<i>`, `<a href>`) that is parsed into
+  React elements and never given to `innerHTML`; anything else renders as
+  literal text. Only `http(s)` links survive. See `lib/article-body.ts`.
+- **Images.** Re-encoded from pixels in the browser before upload, which drops
+  EXIF, GPS and embedded thumbnails, then stored in the private `article-media`
+  bucket as `<journalist id>/<random uuid>.<ext>`, because a phone's filename is
+  metadata too. An image is readable exactly when its article is: the storage
+  policy defers to `article_media`, whose policy defers to `articles`. An
+  author cannot attach another author's upload, and one upload cannot be
+  attached to two articles.
+- **What is not uploaded.** Audio, video and documents block publishing, since
+  nothing here can strip their metadata. Private source files never leave the
+  device.
+- **Drafts** are kept in `localStorage` on the author's device, per account,
+  and cleared on publish. Attachments are not kept in a draft.
 
 ---
 
@@ -308,15 +341,18 @@ Being explicit, because several screens imply otherwise.
 - **Payments.** No pool, no contract, no adapter, no on-ramp. Every BTC figure
   and ledger row on the Fund page comes from `lib/content.ts`.
 - **Engagement recording.** `engagement_events` has no writer, so the payout
-  engine would distribute nothing. Like and comment buttons are inert.
+  engine would distribute nothing. Like, comment and share buttons are inert,
+  and the feed shows no counts rather than invented ones.
 - **The admin review UI.** The backend is built and tested, but there is no
   screen for reviewing verification requests yet.
-- **The feed, editor and fund pages** are upstream components not yet connected
-  to the database. The profile page is wired.
-- **Profile photos and drafts.** The avatar is the account's seal with its
-  initials; there is no photo upload. Nothing writes an unpublished article, so
-  the drafts tab is always empty.
-- Search, bookmarks and image upload.
+- **The fund page** is an upstream component not yet connected to the
+  database. The feed, editor and profile page are.
+- **Profile photos.** The avatar is the account's seal with its initials; there
+  is no photo upload. Drafts live only on the author's device, so the profile's
+  drafts tab is always empty.
+- **Audio, video and document publishing**, which needs server-side metadata
+  stripping first. Images are uploaded, scrubbed in the browser.
+- Bookmarks, and search beyond filtering the loaded feed.
 
 ### Two known contradictions
 

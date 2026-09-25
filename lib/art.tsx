@@ -17,10 +17,18 @@ export function hasPhoto(slug: string, url?: string | null) {
 }
 
 /** Falls back to a generated cover so an article without a photo still reads as one. */
-export function ArtBlock({ slug, kind, priority, sizes, url, alt }: {
+export function ArtBlock({ slug, kind, priority, sizes, url, alt, uploaded }: {
   slug: string; kind: string; priority?: boolean; sizes?: string;
   url?: string | null; alt?: string | null;
+  uploaded?: { url: string | null; alt: string } | null;
 }) {
+  // An image the author uploaded, from Vera's private bucket through a
+  // short-lived signed URL. Not handed to next/image: its optimiser would
+  // fetch the file server-side and keep a copy outside the bucket's policies.
+  if (uploaded?.url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className="art-fill" src={uploaded.url} alt={uploaded.alt} decoding="async" />;
+  }
   // A story can carry its own lead image, referenced from wherever it was
   // published rather than bundled here.
   if (url) {

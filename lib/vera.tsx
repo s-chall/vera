@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase, isConfigured } from "@/lib/supabase";
-import type { AccountType, Article, Byline, PendingVerification, VerificationStatus } from "@/lib/types";
+import type {
+  AccountType, Article, ArticleImage, Byline, PendingVerification, PreparedImage, PublishInput, VerificationStatus,
+} from "@/lib/types";
 
 const ADJECTIVES = ["Quiet", "Amber", "Hollow", "North", "Low", "Grey", "Far", "Still",
   "Salt", "Blue", "Iron", "Pale", "Long", "Dry", "First"];
@@ -15,8 +18,54 @@ export const ALIAS_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 '-]{2,63}$/;
 
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 
-export function slugify(title: string) {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+/** Private bucket for article images; read access follows the article. */
+const MEDIA_BUCKET = "article-media";
+/** Signed image URLs are bearer links, so they are short and re-signed on a timer. */
+const SIGNED_URL_SECONDS = 60 * 60;
+const RESIGN_CHECK_MS = 10 * 60 * 1000;
+/** A URL with less than this left is signed again rather than reused. */
+const RESIGN_MARGIN_MS = 15 * 60 * 1000;
+/** Storage refuses to sign more than 1000 paths in one request. */
+const SIGN_BATCH = 500;
+
+type SignedUrl = { url: string; expiresAt: number };
+
+/**
+ * Signs the paths that are missing from the cache or close to expiry, in
+ * batches storage accepts, and reuses the rest so an <img> keeps the same src
+ * across reloads instead of downloading again. A failed batch leaves the other
+ * images alone. Signing only succeeds for images this account can read.
+ */
+async function signPaths(db: SupabaseClient, cache: Map<string, SignedUrl>, paths: string[]) {
+  const now = Date.now();
+  const stale = [...new Set(paths)].filter((path) => {
+    const hit = cache.get(path);
+    return !hit || hit.expiresAt - now < RESIGN_MARGIN_MS;
+  });
+  for (let start = 0; start < stale.length; start += SIGN_BATCH) {
+    const { data, error } = await db.storage.from(MEDIA_BUCKET)
+      .createSignedUrls(stale.slice(start, start + SIGN_BATCH), SIGNED_URL_SECONDS);
+    if (error || !data) continue;
+    data.forEach((entry) => {
+      if (entry.path && entry.signedUrl && !entry.error) {
+        cache.set(entry.path, { url: entry.signedUrl, expiresAt: now + SIGNED_URL_SECONDS * 1000 });
+      }
+    });
+  }
+  const urls = new Map<string, string>();
+  paths.forEach((path) => {
+    const hit = cache.get(path);
+    if (hit) urls.set(path, hit.url);
+  });
+  return urls;
+}
+
+const imagePaths = (articles: Article[]) =>
+  articles.flatMap((a) => [a.leadImage, ...a.images].flatMap((image) => (image ? [image.path] : [])));
+
+function withUrls(article: Article, urls: Map<string, string>): Article {
+  const fresh = (image: ArticleImage) => ({ ...image, url: urls.get(image.path) ?? image.url });
+  return { ...article, leadImage: article.leadImage ? fresh(article.leadImage) : null, images: article.images.map(fresh) };
 }
 
 type State = {
@@ -72,7 +121,8 @@ type Vera = State & {
   signOut: () => Promise<void>;
   setVerified: (journalistId: string, verified: boolean) => Promise<void>;
   toggleFollow: (id: string) => Promise<void>;
-  publish: (input: { title: string; body: string; dek?: string }) => Promise<Article | null>;
+  /** Uploads the images, files the article, reloads. Throws with a readable message. */
+  publish: (input: PublishInput) => Promise<Article>;
   unpublish: (id: string) => Promise<void>;
   say: (message: string | null, tone?: "error" | "success") => void;
 };
@@ -90,21 +140,71 @@ type BylineRow = {
   region: string; bio: string; verified_at: string | null;
   credential_name: string | null; credential_carnet: string | null; credential_section: string | null;
 };
+type MediaRow = { path: string; role: "lead" | "image"; alt: string; position: number };
 type ArticleRow = {
   id: string; slug: string; journalist_id: string; title: string | null; dek: string;
   body: string[] | null; art: string; category: string; read_mins: number;
   published_at: string | null; visibility: "members" | "media_only" | null;
   hero_image_url: string | null; hero_image_credit: string | null; hero_image_alt: string | null;
+  article_media?: MediaRow[] | null;
 };
 type StatRow = { journalist_id: string; followers: number; articles: number };
 type EarningsRow = { article_id: string; earned_sats: number | string };
 type WalletRow = { starter_sats: number | string; earned_sats: number | string; balance_sats: number | string };
+
+function toArticle(row: ArticleRow, urls: Map<string, string>, earnings = new Map<string, number>()): Article {
+  const media = [...(row.article_media || [])].sort((a, b) => a.position - b.position);
+  const image = (m: MediaRow): ArticleImage => ({ path: m.path, url: urls.get(m.path) ?? null, alt: m.alt });
+  const lead = media.find((m) => m.role === "lead");
+  return {
+    id: row.id,
+    slug: row.slug,
+    journalistId: row.journalist_id,
+    title: row.title as string,
+    dek: row.dek,
+    body: (row.body || []).filter((block): block is string => typeof block === "string"),
+    art: row.art,
+    category: row.category,
+    readMins: row.read_mins,
+    publishedAt: row.published_at ? Date.parse(row.published_at) : null,
+    visibility: row.visibility || "members",
+    heroImageUrl: row.hero_image_url ?? null,
+    heroImageCredit: row.hero_image_credit ?? null,
+    heroImageAlt: row.hero_image_alt ?? null,
+    earnedSats: earnings.get(row.id) ?? 0,
+    leadImage: lead ? image(lead) : null,
+    images: media.filter((m) => m.role === "image").map(image),
+  };
+}
+
+/**
+ * publish_article() raises readable messages; pass those through. A table
+ * constraint says only its own name, so those get a sentence here.
+ */
+function publishError(error: { message: string; code?: string }) {
+  const constraint: [RegExp, string][] = [
+    [/articles_body_size/, "The story is too long: at most 500 paragraphs and about 200 KB of text."],
+    [/articles_title_length/, "Titles are 1 to 200 characters."],
+    [/articles_dek_length/, "The introduction is at most 400 characters."],
+    [/article_media_path_check/, "An image could not be attached. Try again."],
+  ];
+  const known = constraint.find(([pattern]) => pattern.test(error.message));
+  if (known) return new Error(known[1]);
+  if (error.code === "23514" || error.code === "P0002" || error.code === "42501") return new Error(error.message);
+  return new Error(`Publishing failed: ${error.message}`);
+}
 
 export function VeraProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(EMPTY);
   const [notice, setNoticeText] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"error" | "success">("error");
   const [busy, setBusy] = useState(false);
+  // load() runs again after every action and must not throw away a working
+  // session over one failed request, so it needs to know what it already has.
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  const signedRef = useRef(new Map<string, SignedUrl>());
+  const signedForRef = useRef<string | null>(null);
 
   // Anything that goes wrong is an error; successes have to say so explicitly.
   // Defaulting this way means a new failure path can never render as reassuring
@@ -126,19 +226,39 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
     // Vera is closed. Without a session there is nothing to load and nothing to
     // show but the sign-in screen.
     if (!session) {
+      signedRef.current.clear();
       setState({ ...EMPTY, ready: true });
       return;
     }
+    // Signed URLs belong to whoever signed them.
+    if (signedForRef.current !== session.user.id) {
+      signedRef.current.clear();
+      signedForRef.current = session.user.id;
+    }
+    const refreshing = stateRef.current.signedIn;
 
-    const [bylineRes, articleRes, statRes, earningsRes] = await Promise.all([
+    const [bylineRes, initialArticleRes, statRes, earningsRes] = await Promise.all([
       db.from("bylines").select("*"),
-      db.from("articles").select("*").order("published_at", { ascending: false, nullsFirst: false }),
+      db.from("articles").select("*, article_media(path, role, alt, position)")
+        .order("published_at", { ascending: false, nullsFirst: false }),
       db.rpc("byline_stats"),
       db.from("article_earnings").select("article_id, earned_sats"),
     ]);
 
+    // A refresh that fails keeps what is on screen; only a first load can fail the app.
     if (bylineRes.error) {
-      setState({ ...EMPTY, ready: true, fatal: `Could not read bylines: ${bylineRes.error.message}` });
+      if (!refreshing) setState({ ...EMPTY, ready: true, fatal: `Could not read bylines: ${bylineRes.error.message}` });
+      return;
+    }
+
+    // Without the media embed (a project that has not applied the publishing
+    // migration yet) the text still loads.
+    let articleRes = initialArticleRes;
+    if (articleRes.error) {
+      articleRes = await db.from("articles").select("*").order("published_at", { ascending: false, nullsFirst: false });
+    }
+    if (articleRes.error) {
+      if (!refreshing) setState({ ...EMPTY, ready: true, fatal: `Could not read articles: ${articleRes.error.message}` });
       return;
     }
 
@@ -171,25 +291,10 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       (earningsRes.data as EarningsRow[]).forEach((row) => earnings.set(row.article_id, Number(row.earned_sats) || 0));
     }
 
-    const articles: Article[] = ((articleRes.data as ArticleRow[]) || [])
-      .filter((row) => row.title)
-      .map((row) => ({
-        id: row.id,
-        slug: row.slug,
-        journalistId: row.journalist_id,
-        title: row.title as string,
-        dek: row.dek,
-        body: row.body || [],
-        art: row.art,
-        category: row.category,
-        readMins: row.read_mins,
-        publishedAt: row.published_at ? Date.parse(row.published_at) : null,
-        visibility: row.visibility || "members",
-        heroImageUrl: row.hero_image_url,
-        heroImageCredit: row.hero_image_credit,
-        heroImageAlt: row.hero_image_alt,
-        earnedSats: earnings.get(row.id) ?? 0,
-      }));
+    const articleRows = ((articleRes.data as ArticleRow[]) || []).filter((row) => row.title);
+    const paths = articleRows.flatMap((row) => (row.article_media || []).map((m) => m.path));
+    const urls = paths.length ? await signPaths(db, signedRef.current, paths) : new Map<string, string>();
+    const articles: Article[] = articleRows.map((row) => toArticle(row, urls, earnings));
 
     const [mineRes, followRes] = await Promise.all([
       db.from("journalists")
@@ -198,23 +303,25 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       db.from("follows").select("author_id"),
     ]);
 
-    // Two very different situations used to land here and both signed the
-    // reader out. A failed lookup is not evidence that the account is gone, so
-    // it now reports the failure and keeps the session.
+    // A failed lookup is not evidence that the account is gone, so it never
+    // signs anyone out. On a refresh it keeps what is on screen; on first load
+    // it reports the failure and keeps the session.
     if (mineRes.error) {
-      setState({
-        ...EMPTY, ready: true, bylines, articles,
-        fatal: `Could not load your account: ${mineRes.error.message}`,
-      });
+      if (!refreshing) {
+        setState({
+          ...EMPTY, ready: true, bylines, articles,
+          fatal: `Could not load your account: ${mineRes.error.message}`,
+        });
+      }
       return;
     }
 
     // No row, and no error: the account really is not there, usually because
     // the database was reset underneath an open tab. Clearing the stale session
     // is right, otherwise the app holds a token for a user that no longer
-    // exists and every request fails.
+    // exists and every request fails. Only this browser's session, though.
     if (!mineRes.data) {
-      await db.auth.signOut();
+      await db.auth.signOut({ scope: "local" });
       setState({ ...EMPTY, ready: true, bylines, articles });
       return;
     }
@@ -262,6 +369,23 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Image URLs expire. In a tab left open, re-sign the ones on screen before
+  // they do. This touches nothing else, so a failure here cannot sign anyone
+  // out or unmount an editor with unsaved attachments.
+  useEffect(() => {
+    if (!state.signedIn) return;
+    const timer = setInterval(async () => {
+      const db = supabase();
+      const paths = imagePaths(stateRef.current.articles);
+      if (!db || !paths.length) return;
+      try {
+        const urls = await signPaths(db, signedRef.current, paths);
+        setState((current) => ({ ...current, articles: current.articles.map((a) => withUrls(a, urls)) }));
+      } catch { /* the next tick tries again */ }
+    }, RESIGN_CHECK_MS);
+    return () => clearInterval(timer);
+  }, [state.signedIn]);
 
   const guard = useCallback(async (work: () => Promise<void>) => {
     if (busy) return;
@@ -454,6 +578,13 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         const db = mustHaveDb();
         const { error } = await db.auth.signOut();
         if (error) throw new Error(error.message);
+        // Unpublished drafts can name sources. They do not outlive the session
+        // on a device someone else may use next.
+        try {
+          Object.keys(window.localStorage)
+            .filter((key) => key.startsWith("vera.draft."))
+            .forEach((key) => window.localStorage.removeItem(key));
+        } catch { /* storage unavailable: nothing was saved there either */ }
         await load();
         setNotice("Signed out", "success");
       }),
@@ -477,52 +608,68 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         await load();
       }),
 
-      publish: async ({ title, body, dek }) => {
+      // Images go up first, under random names in the author's own folder,
+      // because publish_article() checks they exist before attaching them.
+      // It then files the text and the attachments in one transaction; if
+      // anything fails, the uploads are removed so nothing is left behind.
+      publish: async ({ title, dek, body, visibility, leadImage, images }) => {
         const db = mustHaveDb();
         if (!state.meId) throw new Error("Sign in first.");
-        const paragraphs = body.split("\n").map((line) => line.trim()).filter(Boolean);
-        const firstProse = paragraphs.map((l) => l.replace(/^>\s*/, "").trim()).filter(Boolean)[0];
-        const words = body.split(/\s+/).filter(Boolean).length;
-        let slug = slugify(title);
-        if (!slug) slug = `filed-${Date.now().toString(36)}`;
+        const bucket = db.storage.from(MEDIA_BUCKET);
 
-        const row = {
-          journalist_id: state.meId,
-          slug,
-          title,
-          dek: dek?.trim() || firstProse || "Filed without a summary.",
-          body: paragraphs,
-          art: "paper",
-          category: "Filed",
-          read_mins: Math.max(1, Math.round(words / 220)),
-          published_at: new Date().toISOString(),
+        const queue: { role: "lead" | "image"; image: PreparedImage }[] = [
+          ...(leadImage ? [{ role: "lead" as const, image: leadImage }] : []),
+          ...images.map((image) => ({ role: "image" as const, image })),
+        ];
+        const planned = queue.map((entry) => ({
+          ...entry,
+          path: `${state.meId}/${crypto.randomUUID()}.${entry.image.extension}`,
+        }));
+
+        const uploads = await Promise.allSettled(planned.map(async ({ path, image }) => {
+          const { error } = await bucket.upload(path, image.blob, { contentType: image.type, upsert: false });
+          if (error) throw new Error(`An image could not be uploaded: ${error.message}`);
+          return path;
+        }));
+        const uploaded = uploads.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+        const discard = async () => {
+          if (uploaded.length) await bucket.remove(uploaded);
         };
 
-        let result = await db.from("articles").insert(row).select().single();
-        if (result.error && result.error.code === "23505") {
-          // slug collision: fall back to a unique one rather than failing the write
-          result = await db.from("articles")
-            .insert({ ...row, slug: `${slug}-${Date.now().toString(36).slice(-4)}` })
-            .select().single();
+        const failed = uploads.find((result): result is PromiseRejectedResult => result.status === "rejected");
+        if (failed) {
+          await discard();
+          throw failed.reason instanceof Error ? failed.reason : new Error(String(failed.reason));
         }
-        if (result.error) throw new Error(`Publishing failed: ${result.error.message}`);
+
+        const { data, error } = await db.rpc("publish_article", {
+          headline: title,
+          standfirst: dek,
+          blocks: body,
+          audience: visibility,
+          media: planned.map(({ role, path, image }) => ({ role, path, alt: image.alt })),
+        });
+        if (error) {
+          await discard();
+          throw publishError(error);
+        }
+
         await load();
-        const created = result.data as ArticleRow;
-        return {
-          id: created.id, slug: created.slug, journalistId: created.journalist_id,
-          title: created.title as string, dek: created.dek, body: created.body || [],
-          art: created.art, category: created.category, readMins: created.read_mins,
-          publishedAt: created.published_at ? Date.parse(created.published_at) : null,
-          visibility: created.visibility || "members",
-          heroImageUrl: created.hero_image_url,
-          heroImageCredit: created.hero_image_credit,
-          heroImageAlt: created.hero_image_alt,
-          earnedSats: 0,
-        };
+        return toArticle(data as ArticleRow, new Map());
       },
 
+      // Images first. Deleting the object is the only thing that revokes a
+      // signed URL a reader already holds, so if that fails nothing else
+      // happens and the author is told.
       unpublish: (id) => guard(async () => {
         const db = mustHaveDb();
+        const article = state.articles.find((a) => a.id === id);
+        const paths = article ? imagePaths([article]) : [];
+        if (paths.length) {
+          const { error } = await db.storage.from(MEDIA_BUCKET).remove(paths);
+          if (error) throw new Error(`Could not remove the images, so nothing was unpublished: ${error.message}`);
+          paths.forEach((path) => signedRef.current.delete(path));
+        }
         const { error } = await db.from("articles").delete().eq("id", id);
         if (error) throw new Error(`Unpublishing failed: ${error.message}`);
         await load();

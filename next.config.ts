@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-contained server for the Docker image in deploy/.
+  output: "standalone",
   images: {
     // Lead images are referenced from the outlet that published them rather
     // than copied into this repository.

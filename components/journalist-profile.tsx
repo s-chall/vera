@@ -136,7 +136,7 @@ export function JournalistProfile() {
               <p>
                 {tab === "published"
                   ? "Your reporting will appear here once you publish it."
-                  : "Work you save without publishing will appear here."}
+                  : "Drafts stay on this device, in the editor, until you publish them. Nothing unpublished is stored on Vera."}
               </p>
               <Link className="button button-accent" href="/write">Start writing</Link>
             </div>

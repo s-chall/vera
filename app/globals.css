@@ -1048,3 +1048,46 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .credential-details > div { display: flex; gap: 10px; align-items: baseline; }
 .credential-details dt { min-width: 104px; color: var(--ink-soft); font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
 .credential-details dd { margin: 0; font-size: .84rem; font-weight: 600; }
+
+/* ---------- publishing ---------- */
+.writer-save-dot--unsaved { background: var(--orange); }
+.writer-alt { grid-column: 1 / -1; display: block; }
+.writer-lead-preview .writer-alt { padding: 0 10px 12px 16px; }
+.writer-alt input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--panel); font-size: .8rem; }
+.writer-alt input:focus { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(21,89,214,.14); }
+.writer-alt input::placeholder { color: var(--ink-soft); }
+.writer-dialog { max-height: calc(100dvh - 48px); overflow-y: auto; }
+.writer-audience { margin: 0 0 22px; padding: 0; display: grid; gap: 8px; border: 0; }
+.writer-audience legend { margin-bottom: 10px; padding: 0; font-size: .82rem; font-weight: 750; }
+.writer-audience-option { min-height: 58px; padding: 10px 12px; display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
+.writer-audience-option:has(input:checked) { border-color: var(--accent); background: var(--blue-soft); }
+.writer-audience-option:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(21,89,214,.24); }
+.writer-audience-option input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.writer-audience-option span { display: flex; flex-direction: column; }
+.writer-audience-option strong { font-size: .8rem; }
+.writer-audience-option small { color: var(--ink-soft); font-size: .7rem; }
+.writer-audience:disabled .writer-audience-option { cursor: default; opacity: .7; }
+.writer-dialog-error { margin: 0 0 18px; padding: 12px 14px; border-radius: 8px; color: var(--danger); background: var(--danger-soft); font-size: .78rem; }
+.writer-button:disabled, .writer-button[aria-disabled="true"], .writer-dialog-close:disabled { cursor: not-allowed; opacity: .55; }
+.writer-preview { padding-bottom: 40px; }
+.writer-preview-title { margin: 0; font: 620 clamp(3.1rem, 6vw, 5rem)/.98 var(--font-serif), serif; letter-spacing: -.045em; overflow-wrap: anywhere; }
+.writer-preview-dek { margin: 16px 0 0; color: var(--ink-soft); font: 400 clamp(1.25rem, 2.4vw, 1.48rem)/1.45 var(--font-serif), serif; }
+.writer-preview-lead { width: 100%; max-height: 480px; margin-top: 34px; display: block; border-radius: 10px; object-fit: cover; }
+.writer-preview-body { margin-top: 38px; }
+.writer-preview-empty { color: var(--ink-soft); }
+.writer-preview-figure, .article-page .article-gallery figure { max-width: 680px; margin: 28px auto 0; }
+.writer-preview-figure img, .article-gallery img { width: 100%; height: auto; display: block; border-radius: 12px; }
+.writer-preview-figure figcaption { margin-top: 8px; color: var(--ink-soft); font-size: .72rem; }
+.article-gallery { margin-top: 12px; }
+.article-body hr { width: 64px; margin: 42px auto; border: 0; border-top: 2px solid var(--line); }
+.article-body a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.article-body p, .article-body h2, .article-body blockquote { overflow-wrap: anywhere; }
+.article-audience { min-height: 24px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 99px; color: var(--orange-dark); background: var(--blue-soft); font-size: .7rem; font-weight: 700; }
+.writer-dialog-mark--warn { color: var(--danger); background: var(--danger-soft); }
+.writer-problems li > svg { color: var(--danger); }
+.writer-problems strong { font-weight: 650; line-height: 1.4; }
+.writer-uploads { position: relative; z-index: 1; }
+.writer-lead-controls { display: flex; gap: 2px; }
+.writer-dialog-error:focus { outline: 2px solid var(--danger); outline-offset: 2px; }
+/* an uploaded lead image fills the same box a next/image fill would */
+.art-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

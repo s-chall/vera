@@ -6,6 +6,7 @@ import { ArrowLeft, Bitcoin, Bookmark, Clock3 } from "lucide-react";
 import { useVera } from "@/lib/vera";
 import { bylineName } from "@/lib/types";
 import { ArtBlock } from "@/lib/art";
+import { ArticleBody } from "@/components/article-body";
 import { StatusBadge } from "@/components/status-badge";
 import { ArticlePickups } from "@/components/article-pickups";
 import { ArticleTranslate, type Translation } from "@/components/article-translate";
@@ -38,6 +39,8 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
     ? new Date(article.publishedAt).toLocaleDateString([], { month: "long", day: "numeric" })
     : "Draft";
   const earned = new Intl.NumberFormat().format(article.earnedSats);
+  const uploaded = article.leadImage?.url ? article.leadImage : null;
+  const gallery = article.images.filter((image) => image.url);
 
   return (
     <main id="main-content" className="article-page">
@@ -52,6 +55,9 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
             <span className={`author-dot ${author?.seal ?? ""}`} />
             <strong>{bylineName(author)}</strong>
             <span>{filedAt}</span>
+            {article.visibility === "media_only"
+              ? <span className="article-audience" title="Readable by media organisations and Vera admins">Media only</span>
+              : null}
             <span><Clock3 aria-hidden="true" />{article.readMins} min read</span>
             {author && !mine ? (
               <button className={`follow-button${vera.isFollowing(author.id) ? " following" : ""}`}
@@ -61,7 +67,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
             ) : null}
           </div>
           <h1>{shown.title}</h1>
-          <p className="article-dek">{shown.dek}</p>
+          {shown.dek ? <p className="article-dek">{shown.dek}</p> : null}
           <div className="article-earnings" aria-label={`This report received a payout of ${earned} Signet satoshis`}>
             <Bitcoin aria-hidden="true" />
             <span>Report payout</span>
@@ -88,29 +94,47 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           {/* The media needs its own sized, positioned box: ArtBlock renders a
               fill image, which would otherwise escape to the viewport. */}
           <div className="article-figure-media">
-            <ArtBlock slug={article.slug} kind={article.art} priority
+            <ArtBlock slug={article.slug} kind={article.art} priority uploaded={uploaded}
               url={article.heroImageUrl} alt={article.heroImageAlt}
               sizes="(max-width: 760px) 100vw, 1180px" />
           </div>
-          <figcaption>
-            {article.heroImageAlt ?? "Lead image"}
-            {article.heroImageCredit ? <> · Photograph: {article.heroImageCredit}</> : null}
-          </figcaption>
+          {uploaded ? (
+            uploaded.alt ? <figcaption>{uploaded.alt}</figcaption> : null
+          ) : (
+            <figcaption>
+              {article.heroImageAlt ?? "Lead image"}
+              {article.heroImageCredit ? <> · Photograph: {article.heroImageCredit}</> : null}
+            </figcaption>
+          )}
         </figure>
 
         <div className="article-body">
-          {shown.body.map((line, index) => (
-            line.startsWith(">")
-              ? <blockquote key={index}>{line.replace(/^>\s*/, "")}</blockquote>
-              : <p key={index}>{line}</p>
-          ))}
+          <ArticleBody blocks={shown.body} />
         </div>
+
+        {gallery.length ? (
+          <section className="article-gallery" aria-label="Images">
+            {gallery.map((image) => (
+              <figure key={image.path}>
+                {/* A signed URL from the private bucket, readable only by this article's audience. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image.url as string} alt={image.alt} loading="lazy" decoding="async" />
+                {image.alt ? <figcaption>{image.alt}</figcaption> : null}
+              </figure>
+            ))}
+          </section>
+        ) : null}
 
         {mine ? (
           <aside className="owner-actions">
             <div>
               <strong>This is your report.</strong>
-              <span>It is visible to everyone under {bylineName(author)}. Nothing links it to your wallet.</span>
+              <span>
+                {article.visibility === "media_only"
+                  ? `Media organisations and Vera admins can read it under ${bylineName(author)}. Other members cannot.`
+                  : `Every member can read it under ${bylineName(author)}.`}
+                {" "}Nothing links it to your wallet.
+              </span>
             </div>
             <button className="secondary-button danger" disabled={vera.busy}
               onClick={() => void vera.unpublish(article.id)}>Unpublish</button>

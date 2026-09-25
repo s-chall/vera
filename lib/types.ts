@@ -24,22 +24,53 @@ export type PendingVerification = {
   submittedAt: number;
 };
 
+export type Visibility = "members" | "media_only";
+
+/** An image attached to an article. `url` is a short-lived signed URL. */
+export type ArticleImage = {
+  path: string;
+  url: string | null;
+  alt: string;
+};
+
 export type Article = {
   id: string;
   slug: string;
   journalistId: string;
   title: string;
   dek: string;
+  /** Stored blocks; see lib/article-body.ts. */
   body: string[];
   art: string;
   category: string;
   readMins: number;
   publishedAt: number | null;
-  visibility: "members" | "media_only";
+  visibility: Visibility;
+  /** A remote photograph credited to its outlet (seeded stories). */
   heroImageUrl: string | null;
   heroImageCredit: string | null;
   heroImageAlt: string | null;
   earnedSats: number;
+  /** An image the author uploaded; takes precedence over heroImageUrl. */
+  leadImage: ArticleImage | null;
+  images: ArticleImage[];
+};
+
+/** An image already scrubbed by lib/scrub-image.ts, ready to upload. */
+export type PreparedImage = {
+  blob: Blob;
+  type: string;
+  extension: string;
+  alt: string;
+};
+
+export type PublishInput = {
+  title: string;
+  dek: string;
+  body: string[];
+  visibility: Visibility;
+  leadImage: PreparedImage | null;
+  images: PreparedImage[];
 };
 
 export type FeedFilter = "for-you" | "latest" | "following";
