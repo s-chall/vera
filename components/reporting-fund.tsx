@@ -130,7 +130,7 @@ export function ReportingFund() {
     <main id="main-content" className="fund-page">
       <div className="fund-shell">
         <header className="fund-intro">
-          <h1>Total Pool</h1>
+          <h1>Funding Pool</h1>
         </header>
 
         <div className="fund-main-grid">
