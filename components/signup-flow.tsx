@@ -61,9 +61,18 @@ export function SignupFlow() {
     if (step === 1) {
       if (!email.includes("@")) return vera.say("Enter the email you will sign in with");
       if (password.length < 10) return vera.say("Use at least 10 characters");
-      if (role === "media_org" && domainOk === false) {
-        return vera.say("That address is not at a news organisation we recognise");
+
+      if (role === "media_org") {
+        // Check now rather than trusting the debounced result: the signup
+        // trigger refuses an unrecognised outlet by raising, which aborts
+        // GoTrue's transaction and surfaces as an opaque database error.
+        const recognised = await vera.isMediaDomain(email.trim());
+        setDomainOk(recognised);
+        if (!recognised) {
+          return vera.say("That address is not at a news organisation we recognise");
+        }
       }
+
       vera.say(null);
       return setStep(2);
     }

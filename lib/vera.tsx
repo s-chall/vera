@@ -313,8 +313,13 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           if (/already registered/i.test(error.message)) {
             throw new Error("That email already has an account. Sign in instead.");
           }
-          // the signup trigger raises this for a media_org address we do not recognise
+          // The signup trigger raises for an unrecognised outlet. Depending on
+          // where GoTrue notices, that arrives either as the message itself or
+          // as an opaque database error once its transaction is aborted.
           if (/recognised outlet/i.test(error.message)) {
+            throw new Error("That address is not at a news organisation we recognise.");
+          }
+          if (accountType === "media_org" && /database error|unexpected_failure|transaction is aborted/i.test(error.message)) {
             throw new Error("That address is not at a news organisation we recognise.");
           }
           throw new Error(error.message);
