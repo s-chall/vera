@@ -25,6 +25,8 @@ const required = (name: string) => {
   return value;
 };
 
+const hex = (bytes: Uint8Array) => `\\x${[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+
 async function fingerprint(cnp: string) {
   const key = await crypto.subtle.importKey(
     "raw", new TextEncoder().encode(required("VERA_CNP_HMAC_KEY")),
@@ -96,6 +98,20 @@ Deno.serve(async (request) => {
     return Response.json({ error: "Only journalist accounts need verification" }, { status: 400 });
   }
 
+  // Only a verified affiliation reserves a CNP number. Checking before the
+  // lookup also means an already-claimed number never sends a cedula to the
+  // register at all.
+  const fp = hex(await fingerprint(cnp));
+  const { data: claimed } = await admin.from("verification_requests")
+    .select("journalist_id")
+    .eq("cnp_fingerprint", fp)
+    .eq("status", "approved")
+    .neq("journalist_id", journalist.id)
+    .limit(1);
+  if (claimed && claimed.length) {
+    return Response.json({ error: "That CNP number is already registered" }, { status: 409 });
+  }
+
   let outcome: "match" | "no_match" | "inconclusive";
   try {
     outcome = await lookup(cnp, cedula);
@@ -106,7 +122,7 @@ Deno.serve(async (request) => {
   const { data: saved, error } = await admin.from("verification_requests").upsert({
     journalist_id: journalist.id,
     status: "pending",
-    cnp_fingerprint: await fingerprint(cnp),
+    cnp_fingerprint: fp,
     document_path: null,
     lookup_outcome: outcome,
     checked_at: new Date().toISOString(),
@@ -124,10 +140,11 @@ Deno.serve(async (request) => {
   }
 
   if (outcome === "no_match") {
-    await admin.rpc("decide_verification", {
+    const { error: decideError } = await admin.rpc("decide_verification", {
       request_id: saved.id, approve: false,
       reason: "CNP and cédula did not match an affiliate on the CNP register",
     });
+    if (decideError) return Response.json({ error: decideError.message }, { status: 500 });
     return Response.json({
       outcome,
       message: "That CNP number and cédula do not match an affiliate on the CNP register.",
@@ -135,7 +152,22 @@ Deno.serve(async (request) => {
   }
 
   if (outcome === "match") {
-    await admin.rpc("decide_verification", { request_id: saved.id, approve: true, reason: null });
+    // The approval is where the reservation is enforced, so a race between two
+    // accounts claiming one number surfaces here rather than being reported as
+    // a success.
+    const { error: decideError } = await admin.rpc("decide_verification", {
+      request_id: saved.id, approve: true, reason: null,
+    });
+    if (decideError) {
+      if (decideError.code === "23505") {
+        await admin.rpc("decide_verification", {
+          request_id: saved.id, approve: false,
+          reason: "CNP number already verified on another account",
+        });
+        return Response.json({ error: "That CNP number is already registered" }, { status: 409 });
+      }
+      return Response.json({ error: decideError.message }, { status: 500 });
+    }
     return Response.json({ outcome, message: "Verified against the CNP register." });
   }
 

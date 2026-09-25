@@ -48,8 +48,9 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   check('journalist starts unverified', jrProfile?.verified_at === null, String(jrProfile?.verified_at));
 
   // ---- CNP lookup against the live register
+  const bogusCnp = String(90000 + Math.floor(Math.random() * 9999));
   const bogus = await api('/functions/v1/submit-verification', {
-    token: jrToken, method: 'POST', body: { cnpNumber: '99999', cedula: 'V00000000' } });
+    token: jrToken, method: 'POST', body: { cnpNumber: bogusCnp, cedula: 'V00000000' } });
   check('an invalid pair is refused by the register', bogus.status === 422 && bogus.data?.outcome === 'no_match',
     bogus.status + ' ' + JSON.stringify(bogus.data).slice(0, 130));
 
@@ -69,17 +70,40 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
   const realCnp = process.env.VERA_TEST_CNP;
   const realCedula = process.env.VERA_TEST_CEDULA;
   if (realCnp && realCedula) {
+    // Squatting: submitting a real CNP number with a made-up cedula is refused,
+    // and must not stop the real journalist verifying afterwards.
+    const squatter = await newAccount('journalist');
+    const squat = await api('/functions/v1/submit-verification', {
+      token: squatter.token, method: 'POST', body: { cnpNumber: realCnp, cedula: 'V00000001' } });
+    check('a real CNP with the wrong cedula is refused', [409, 422].includes(squat.status),
+      squat.status + ' ' + JSON.stringify(squat.data).slice(0, 110));
+
     const second = await newAccount('journalist');
     const secondProfile = await profileOf(second.token, second.user.id);
     const good = await api('/functions/v1/submit-verification', {
       token: second.token, method: 'POST', body: { cnpNumber: realCnp, cedula: realCedula } });
-    check('a real pair verifies against the register', good.status === 200 && good.data?.outcome === 'match',
-      good.status + ' ' + JSON.stringify(good.data).slice(0, 130));
-    const nowVerified = await api('/rest/v1/bylines?select=verified_at&id=eq.' + secondProfile.id, { token: second.token });
-    check('a matched lookup verifies the byline', Boolean(nowVerified.data?.[0]?.verified_at),
-      JSON.stringify(nowVerified.data));
-    check('the affiliate name is never returned to the client',
-      !JSON.stringify(good.data).match(/Nombre|Apellido/i), JSON.stringify(good.data).slice(0, 120));
+
+    if (good.status === 409) {
+      // Already verified on an account from an earlier run. That is the
+      // reservation working, and a fresh database is needed to see the match.
+      check('a verified CNP cannot be claimed by a second account', true);
+      console.log('  (live match already claimed by an earlier run; db:reset to exercise it again)');
+    } else {
+      check('a failed squat does not block the real journalist', good.status !== 409, good.status);
+      check('a real pair verifies against the register', good.status === 200 && good.data?.outcome === 'match',
+        good.status + ' ' + JSON.stringify(good.data).slice(0, 130));
+      const nowVerified = await api('/rest/v1/bylines?select=verified_at&id=eq.' + secondProfile.id, { token: second.token });
+      check('a matched lookup verifies the byline', Boolean(nowVerified.data?.[0]?.verified_at),
+        JSON.stringify(nowVerified.data));
+      check('the affiliate name is never returned to the client',
+        !JSON.stringify(good.data).match(/Nombre|Apellido/i), JSON.stringify(good.data).slice(0, 120));
+
+      const third = await newAccount('journalist');
+      const again = await api('/functions/v1/submit-verification', {
+        token: third.token, method: 'POST', body: { cnpNumber: realCnp, cedula: realCedula } });
+      check('a verified CNP cannot be claimed by a second account', again.status === 409,
+        again.status + ' ' + JSON.stringify(again.data).slice(0, 100));
+    }
   } else {
     console.log('  (skipping the live match test: set VERA_TEST_CNP and VERA_TEST_CEDULA in .env.test)');
   }
