@@ -7,7 +7,7 @@ import { VeraProvider } from "@/lib/vera";
 import { SignupGate } from "@/components/signup-gate";
 
 export const metadata: Metadata = {
-  title: { default: "Vera — Protected reporting", template: "%s — Vera" },
+  title: { default: "Vera - Verified Reporting", template: "%s - Vera" },
   description: "Reader-funded reporting with protected journalist identities and transparent payouts.",
 };
 
