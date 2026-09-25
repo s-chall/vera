@@ -31,13 +31,17 @@ type State = {
   accountType: AccountType | null;
   verification: VerificationStatus | null;
   fundingConfirmed: boolean;
+  walletBalanceSats: number;
+  walletStarterSats: number;
+  walletEarnedSats: number;
   fatal: string | null;
 };
 
 const EMPTY: State = {
   ready: false, signedIn: false, meId: null, email: null,
   bylines: {}, articles: [], following: [], isAdmin: false,
-  accountType: null, verification: null, fundingConfirmed: false, fatal: null,
+  accountType: null, verification: null, fundingConfirmed: false,
+  walletBalanceSats: 0, walletStarterSats: 0, walletEarnedSats: 0, fatal: null,
 };
 
 type Vera = State & {
@@ -93,6 +97,8 @@ type ArticleRow = {
   hero_image_url: string | null; hero_image_credit: string | null; hero_image_alt: string | null;
 };
 type StatRow = { journalist_id: string; followers: number; articles: number };
+type EarningsRow = { article_id: string; earned_sats: number | string };
+type WalletRow = { starter_sats: number | string; earned_sats: number | string; balance_sats: number | string };
 
 export function VeraProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(EMPTY);
@@ -124,10 +130,11 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const [bylineRes, articleRes, statRes] = await Promise.all([
+    const [bylineRes, articleRes, statRes, earningsRes] = await Promise.all([
       db.from("bylines").select("*"),
       db.from("articles").select("*").order("published_at", { ascending: false, nullsFirst: false }),
       db.rpc("byline_stats"),
+      db.from("article_earnings").select("article_id, earned_sats"),
     ]);
 
     if (bylineRes.error) {
@@ -159,6 +166,11 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
+    const earnings = new Map<string, number>();
+    if (!earningsRes.error && earningsRes.data) {
+      (earningsRes.data as EarningsRow[]).forEach((row) => earnings.set(row.article_id, Number(row.earned_sats) || 0));
+    }
+
     const articles: Article[] = ((articleRes.data as ArticleRow[]) || [])
       .filter((row) => row.title)
       .map((row) => ({
@@ -176,6 +188,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         heroImageUrl: row.hero_image_url,
         heroImageCredit: row.hero_image_credit,
         heroImageAlt: row.hero_image_alt,
+        earnedSats: earnings.get(row.id) ?? 0,
       }));
 
     const [mineRes, followRes] = await Promise.all([
@@ -224,7 +237,11 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch { /* a stored alias is a convenience, never a blocker */ }
-    const verificationRes = await db.from("verification_requests").select("status").maybeSingle();
+    const [verificationRes, walletRes] = await Promise.all([
+      db.from("verification_requests").select("status").maybeSingle(),
+      db.rpc("my_signet_wallet").maybeSingle(),
+    ]);
+    const wallet = walletRes.data as WalletRow | null;
     setState({
       ready: true,
       signedIn: true,
@@ -236,6 +253,9 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       isAdmin: Boolean(mine.is_admin),
       accountType: mine.account_type,
       fundingConfirmed: Boolean(mine.funding_confirmed_at),
+      walletBalanceSats: Number(wallet?.balance_sats) || 0,
+      walletStarterSats: Number(wallet?.starter_sats) || 0,
+      walletEarnedSats: Number(wallet?.earned_sats) || 0,
       verification: (verificationRes.data as { status: VerificationStatus } | null)?.status ?? null,
       fatal: null,
     });
@@ -497,6 +517,7 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
           heroImageUrl: created.hero_image_url,
           heroImageCredit: created.hero_image_credit,
           heroImageAlt: created.hero_image_alt,
+          earnedSats: 0,
         };
       },
 

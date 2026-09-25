@@ -30,8 +30,10 @@ alter table public.admin_pool_payout_lines enable row level security;
 alter table public.admin_pool_payout_lines force row level security;
 
 -- Public can read settled payout history (transparency); writes are service_role only.
+drop policy if exists admin_pool_payouts_public_read on public.admin_pool_payouts;
 create policy admin_pool_payouts_public_read on public.admin_pool_payouts
   for select to anon, authenticated using (true);
+drop policy if exists admin_pool_payout_lines_public_read on public.admin_pool_payout_lines;
 create policy admin_pool_payout_lines_public_read on public.admin_pool_payout_lines
   for select to anon, authenticated using (true);
 

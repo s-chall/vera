@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Bitcoin, Check, Copy, ExternalLink, RotateCcw, Wallet } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useVera } from "@/lib/vera";
 
 const PRESETS = [10_000, 25_000, 50_000];
 
@@ -27,6 +29,7 @@ type FundSnapshot = {
   custody: string;
   tx_count: number;
   utxos: FundUtxo[];
+  internal_sats?: number;
 };
 
 type Invoice = {
@@ -46,6 +49,7 @@ function shortTx(txid: string) {
 }
 
 export function ReportingFund() {
+  const vera = useVera();
   const [amount, setAmount] = useState("25000");
   const [anonymous, setAnonymous] = useState(true);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -54,10 +58,13 @@ export function ReportingFund() {
   const [poolError, setPoolError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoBalance, setDemoBalance] = useState<number | null>(null);
+  const [demoSuccess, setDemoSuccess] = useState<string | null>(null);
 
   const numericAmount = useMemo(() => Number.parseInt(amount, 10) || 0, [amount]);
   const validAmount = numericAmount >= 1_000;
   const isSignet = pool?.network === "signet" || !pool;
+  const availableSats = demoBalance ?? vera.walletBalanceSats;
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +122,41 @@ export function ReportingFund() {
     }
   }
 
+  async function submitInternal() {
+    if (!validAmount || numericAmount > availableSats) return;
+    setSubmitting(true);
+    setFormError(null);
+    setDemoSuccess(null);
+    try {
+      const db = supabase();
+      if (!db) throw new Error("Supabase is not configured.");
+      const { data, error } = await db.rpc("contribute_internal_signet", {
+        contribution_sats: numericAmount,
+        hide_identity: anonymous,
+      }).single();
+      if (error) throw error;
+      const result = data as { wallet_balance_sats: number | string; pool_balance_sats: number | string };
+      const nextWallet = Number(result.wallet_balance_sats);
+      const nextPool = Number(result.pool_balance_sats);
+      setDemoBalance(nextWallet);
+      setPool((current) => {
+        if (!current) return current;
+        const balanceSats = current.balance_sats - (current.internal_sats ?? 0) + nextPool;
+        return {
+          ...current,
+          internal_sats: nextPool,
+          balance_sats: balanceSats,
+          balance_btc: (balanceSats / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "") || "0",
+        };
+      });
+      setDemoSuccess(`${formatSats(numericAmount)} starter sats moved to the reporting pool.`);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Contribution failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function copyAddress() {
     if (!invoice) return;
     try {
@@ -137,13 +179,13 @@ export function ReportingFund() {
           <section className="fund-balance" aria-label="Current Total Pool balance">
             <Bitcoin className="fund-balance-icon" aria-hidden="true" />
             <strong>
-              {pool ? pool.balance_btc : "—"} <small>BTC</small>
+              {pool ? pool.balance_btc : "—"} <small>{pool?.internal_sats ? "sBTC" : "BTC"}</small>
             </strong>
             <p>
               {pool
                 ? [
                     formatSats(pool.balance_sats) + " sats",
-                    pool.approx_usd,
+                    pool.internal_sats ? "Internal demo pool" : pool.approx_usd,
                     pool.network === "signet" ? "Signet" : null,
                   ]
                     .filter(Boolean)
@@ -155,8 +197,9 @@ export function ReportingFund() {
             {pool ? (
               <p className="fund-balance-meta">
                 <a href={pool.explorer_url} target="_blank" rel="noreferrer">
-                  View address
+                  View on-chain address
                 </a>
+                {pool.internal_sats ? <span> · Demo balance is tracked in Vera</span> : null}
               </p>
             ) : null}
 
@@ -179,6 +222,7 @@ export function ReportingFund() {
               <form onSubmit={submitBitcoin}>
                 <header>
                   <h2 id="donate-title">Contribute</h2>
+                  <p className="fund-demo-balance">Available: <strong>{formatSats(availableSats)} sats</strong> · internal Signet demo wallet</p>
                 </header>
 
                 <div className="fund-presets" aria-label="Suggested contribution amounts">
@@ -224,10 +268,17 @@ export function ReportingFund() {
                 </label>
 
                 {formError ? <p className="fund-form-error" role="alert">{formError}</p> : null}
+                {demoSuccess ? <p className="fund-banner" role="status">{demoSuccess}</p> : null}
 
-                <button className="fund-submit" type="submit" disabled={!validAmount || submitting}>
+                <button className="fund-submit" type="button"
+                  disabled={!validAmount || numericAmount > availableSats || submitting}
+                  onClick={() => void submitInternal()}>
+                  <Wallet aria-hidden="true" />
+                  {submitting ? "Contributing…" : "Use starter sats"}
+                </button>
+                <button className="fund-chain-option" type="submit" disabled={!validAmount || submitting}>
                   <Bitcoin aria-hidden="true" />
-                  {submitting ? "Preparing…" : "Pay with Bitcoin"}
+                  Pay on-chain instead
                 </button>
               </form>
             ) : (

@@ -366,6 +366,11 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .article-byline strong { color: var(--ink); }
 .article-page h1 { margin: 18px 0 14px; font: 650 clamp(1.9rem, 3.6vw, 2.9rem)/1.08 var(--font-serif), serif; letter-spacing: -.025em; }
 .article-dek { max-width: 68ch; margin: 0 0 20px; color: var(--ink-soft); font: 450 clamp(1.02rem, 1.5vw, 1.18rem)/1.5 var(--font-serif), serif; }
+.article-earnings { width: fit-content; min-height: 44px; margin: 22px 0; padding: 9px 12px; display: grid; grid-template-columns: 20px auto auto; align-items: center; gap: 2px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.article-earnings > svg { width: 17px; height: 17px; grid-row: 1 / 3; color: var(--orange-dark); }
+.article-earnings > span { color: var(--ink-soft); font-size: .66rem; font-weight: 650; }
+.article-earnings > strong { color: var(--orange-dark); font-size: .78rem; font-variant-numeric: tabular-nums; }
+.article-earnings > small { grid-column: 3; grid-row: 1 / 3; padding-left: 9px; border-left: 1px solid var(--line); color: var(--ink-soft); font-size: .62rem; }
 .status-badge { width: max-content; min-height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; color: var(--blue); background: var(--blue-soft); font-size: .75rem; font-weight: 700; }
 .article-page figure { margin: 48px 0 20px; }
 .article-page figcaption { margin-top: 10px; color: var(--ink-soft); font-size: .72rem; }
@@ -621,6 +626,7 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .fund-balance > strong small { font: 650 .19em/1 var(--font-sans), sans-serif; letter-spacing: .04em; }
 .fund-balance > p { margin: 18px 0 0; color: var(--ink-soft); }
 .fund-balance-meta { margin: 14px 0 0; font-size: .72rem; }
+.fund-balance-meta span { color: var(--ink-soft); }
 .fund-balance-meta a { color: var(--orange); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
 .fund-deposits { margin: 28px 0 0; padding: 18px 0 0; border-top: 1px solid rgba(255,255,255,.14); list-style: none; display: grid; gap: 8px; }
 .fund-deposits a { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink); font-size: .74rem; }
@@ -628,6 +634,8 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .fund-deposits a:hover { color: #fff; }
 .fund-donate { padding: clamp(26px, 4vw, 40px); background: var(--surface); box-shadow: var(--shadow); }
 .fund-donate h2 { margin: 0; font: 640 clamp(2rem, 4vw, 2.8rem)/1 var(--font-serif), serif; letter-spacing: -.035em; }
+.fund-demo-balance { margin: 9px 0 0; color: var(--ink-soft); font-size: .72rem; }
+.fund-demo-balance strong { color: var(--orange-dark); font-variant-numeric: tabular-nums; }
 .fund-presets { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .fund-presets button { min-height: 54px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface-strong); font-size: .77rem; font-weight: 750; transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease; }
 .fund-presets button span { color: var(--ink-soft); font-size: .67rem; font-weight: 600; }
@@ -648,6 +656,8 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
 .fund-submit { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1.5px solid var(--line); border-radius: 8px; color: #fff; background: var(--accent); box-shadow: 0 8px 24px rgba(138, 99, 229, 0.35); font-weight: 780; transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease; }
 .fund-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(138, 99, 229, 0.45); background: #9b78f0; }
 .fund-submit:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
+.fund-chain-option { width: 100%; min-height: 44px; margin-top: 9px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; color: var(--ink-soft); background: transparent; font-size: .72rem; font-weight: 700; }
+.fund-chain-option:hover:not(:disabled) { color: var(--blue); }
 .fund-invoice { text-align: center; }
 .fund-invoice header p { margin: 10px auto 0; color: var(--ink-soft); font-size: .76rem; }
 .fund-address { width: 100%; min-height: 52px; padding: 0 13px; display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface-strong); }
