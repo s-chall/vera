@@ -136,6 +136,7 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
     Array.isArray(adminWallet.data) && adminWallet.data.length === 0, JSON.stringify(adminWallet.data).slice(0, 110));
 
   // ---------- visibility follows account type
+  const seededCount = (await api('/rest/v1/articles?select=slug', { token: adminToken })).data?.length ?? 0;
   const post = await api('/rest/v1/articles', { token: jrToken, method: 'POST', prefer: 'return=representation',
     body: { journalist_id: jrProfile.id, slug: uniq('filed'), title: 'Filed by a journalist',
             dek: 'Sensitive.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
@@ -175,8 +176,8 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
     await api('/rest/v1/articles?id=eq.' + post.data[0].id, { token: jrToken, method: 'DELETE' });
   }
   const leftovers = await api('/rest/v1/articles?select=slug', { token: adminToken });
-  check('the suite leaves no stray articles behind', leftovers.data?.length === 1,
-    'articles remaining: ' + leftovers.data?.length);
+  check('the suite leaves no stray articles behind', leftovers.data?.length === seededCount,
+    'remaining ' + leftovers.data?.length + ', seeded ' + seededCount);
 
   report();
 })().catch((e) => { console.error(e); report(); });

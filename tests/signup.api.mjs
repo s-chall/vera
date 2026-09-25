@@ -76,7 +76,9 @@ const profileOf = async (token, userId) => {
   check('a signed-in account can read bylines', adminSees.status === 200 && adminSees.data.length >= 5,
     adminSees.status + ' n=' + (adminSees.data?.length));
   const adminArticles = await api('/rest/v1/articles?select=slug', { token: adminToken });
-  check('a signed-in account can read the seeded article', adminArticles.data?.length === 1, 'n=' + adminArticles.data?.length);
+  check('a signed-in account can read the seeded articles',
+    adminArticles.data?.some((a) => a.slug === 'trujillo-reporter-detained-over-fuel-shortage-story'),
+    'n=' + adminArticles.data?.length);
 
   // ---- an ordinary signup
   const a = await newAccount();
