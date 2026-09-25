@@ -4,13 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useVera } from "@/lib/vera";
 import type { AccountType } from "@/lib/types";
-import { CircleUserRound, FilePenLine, HandCoins, MessageSquare, Newspaper, Search } from "lucide-react";
+import { CircleUserRound, FilePenLine, HandCoins, Newspaper, Search } from "lucide-react";
 import { VeraMark } from "@/components/vera-mark";
 
 const links = [
   { href: "/", label: "News", icon: Newspaper },
   { href: "/fund", label: "Fund", icon: HandCoins },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/write", label: "Write", icon: FilePenLine },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];

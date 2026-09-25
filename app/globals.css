@@ -692,42 +692,11 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .admin-shell { width: min(720px, calc(100% - 48px)); }
 }
 
-/* Chat — follow deposit address into payout briefs */
-.chat-page { min-height: 100dvh; margin-left: 236px; }
-.chat-shell { width: min(720px, calc(100% - 64px)); margin: 0 auto; padding: 72px 0 100px; display: flex; flex-direction: column; gap: 18px; }
-.chat-intro h1 { margin: 0; font: 650 clamp(3.4rem, 7vw, 5.6rem)/.88 var(--font-serif), serif; letter-spacing: -.05em; }
-.chat-intro p { margin: 12px 0 0; max-width: 46ch; color: var(--ink-soft); font-size: .92rem; line-height: 1.45; }
-.chat-model { font-size: .72rem !important; color: var(--ink-soft); }
-.chat-wallet { padding: 18px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
-.chat-wallet label { display: inline-flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 750; }
-.chat-wallet > div { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.chat-wallet input { min-height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; }
-.chat-wallet button { min-height: 48px; padding: 0 18px; border: 0; border-radius: 8px; color: #fff; background: var(--accent); box-shadow: 0 6px 18px rgba(138, 99, 229, 0.28); font-weight: 750; }
-.chat-wallet button:disabled { opacity: .45; box-shadow: none; }
-.chat-error { margin: 10px 0 0; color: var(--danger); font-size: .78rem; font-weight: 650; }
-.chat-prompts { display: flex; flex-wrap: wrap; gap: 8px; }
-.chat-prompts button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-strong); color: var(--ink-soft); font-size: .74rem; font-weight: 650; }
-.chat-prompts button:hover { border-color: var(--accent); color: var(--ink); }
-.chat-sync { display: inline-flex; align-items: center; gap: 6px; }
-.chat-meta { display: block; margin-top: 8px; color: var(--ink-soft); font-size: .68rem; }
-.chat-thread { display: grid; gap: 12px; min-height: 280px; }
-.chat-bubble { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 14px 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
-.chat-bubble svg { margin-top: 2px; color: var(--blue); }
-.chat-bubble p { margin: 0; white-space: pre-wrap; font-size: .88rem; line-height: 1.45; }
-.chat-bubble ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.chat-bubble a { color: var(--blue); font-size: .78rem; font-weight: 650; text-decoration: underline; text-underline-offset: 2px; }
-.chat-bubble-user { grid-template-columns: 1fr; background: var(--blue-soft); border-color: var(--accent); }
-.chat-composer { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.chat-composer input { min-height: 52px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface-strong); }
-.chat-composer button { width: 52px; border: 0; border-radius: 10px; color: #fff; background: var(--accent); box-shadow: 0 6px 18px rgba(138, 99, 229, 0.28); }
-.chat-composer button:disabled { opacity: .4; box-shadow: none; }
 
 @media (max-width: 900px) {
   .fund-page { margin-left: 0; padding-bottom: calc(var(--nav-height) + 24px); }
   .fund-shell { width: min(760px, calc(100% - 48px)); padding-top: 56px; padding-bottom: 48px; }
   .fund-balance { min-height: 340px; }
-  .chat-page { margin-left: 0; padding-bottom: calc(var(--nav-height) + 24px); }
-  .chat-shell { width: min(720px, calc(100% - 48px)); padding-top: 56px; }
 }
 
 @media (max-width: 680px) {
@@ -742,9 +711,6 @@ svg { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
   .fund-donate { padding: 27px 20px; }
   .fund-presets { grid-template-columns: 1fr; }
   .fund-presets button { min-height: 48px; }
-  .chat-shell { width: calc(100% - 32px); padding: 38px 0 calc(var(--nav-height) + 48px); }
-  .chat-wallet > div { grid-template-columns: 1fr; }
-  .chat-intro h1 { font-size: clamp(3.2rem, 16vw, 4.4rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
