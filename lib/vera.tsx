@@ -185,9 +185,21 @@ export function VeraProvider({ children }: { children: React.ReactNode }) {
       db.from("follows").select("author_id"),
     ]);
 
-    // A session with no journalist row means the account predates the current
-    // schema. Treat it as signed out so the gate offers signup rather than
-    // dropping the reader into a half-built profile.
+    // Two very different situations used to land here and both signed the
+    // reader out. A failed lookup is not evidence that the account is gone, so
+    // it now reports the failure and keeps the session.
+    if (mineRes.error) {
+      setState({
+        ...EMPTY, ready: true, bylines, articles,
+        fatal: `Could not load your account: ${mineRes.error.message}`,
+      });
+      return;
+    }
+
+    // No row, and no error: the account really is not there, usually because
+    // the database was reset underneath an open tab. Clearing the stale session
+    // is right, otherwise the app holds a token for a user that no longer
+    // exists and every request fails.
     if (!mineRes.data) {
       await db.auth.signOut();
       setState({ ...EMPTY, ready: true, bylines, articles });
