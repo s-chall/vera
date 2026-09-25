@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bookmark, Clock3 } from "lucide-react";
+import { ArrowLeft, Bitcoin, Bookmark, Clock3 } from "lucide-react";
 import { useVera } from "@/lib/vera";
 import { bylineName } from "@/lib/types";
 import { ArtBlock } from "@/lib/art";
@@ -37,6 +37,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
   const filedAt = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString([], { month: "long", day: "numeric" })
     : "Draft";
+  const earned = new Intl.NumberFormat().format(article.earnedSats);
 
   return (
     <main id="main-content" className="article-page">
@@ -61,6 +62,12 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           </div>
           <h1>{shown.title}</h1>
           <p className="article-dek">{shown.dek}</p>
+          <div className="article-earnings" aria-label={`This report received a payout of ${earned} Signet satoshis`}>
+            <Bitcoin aria-hidden="true" />
+            <span>Report payout</span>
+            <strong>{earned} sats</strong>
+            <small>Settled on the Signet demo ledger</small>
+          </div>
           <ArticleTranslate articleId={article.id} active={translation?.language ?? "en"}
             onChange={setTranslation} />
           {author?.verified ? (

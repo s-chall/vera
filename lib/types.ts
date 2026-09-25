@@ -39,6 +39,7 @@ export type Article = {
   heroImageUrl: string | null;
   heroImageCredit: string | null;
   heroImageAlt: string | null;
+  earnedSats: number;
 };
 
 export type FeedFilter = "for-you" | "latest" | "following";

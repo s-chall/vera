@@ -20,6 +20,8 @@ function when(at: number | null) {
   return new Date(at).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+const sats = (amount: number) => new Intl.NumberFormat().format(amount);
+
 export function JournalistProfile() {
   const vera = useVera();
   const [tab, setTab] = useState<"published" | "drafts">("published");
@@ -33,8 +35,6 @@ export function JournalistProfile() {
   const published = mine.filter((a) => a.publishedAt !== null);
   const drafts = mine.filter((a) => a.publishedAt === null);
   const shown: Article[] = tab === "published" ? published : drafts;
-  const isFunder = vera.accountType === "funder";
-
   return (
     <main id="main-content" className="page-shell profile-page profile-page--journalist">
       <header className="journalist-profile-header">
@@ -70,14 +70,12 @@ export function JournalistProfile() {
       <section className="profile-summary" aria-label="Account summary">
         <article className="profile-wallet-compact">
           <div className="profile-wallet-value">
-            <span>{isFunder ? "Contributions" : "Earned"}</span>
-            <strong>—</strong>
+            <span>Signet wallet</span>
+            <strong>{sats(vera.walletBalanceSats)} sats</strong>
             <small>
-              {isFunder
-                ? vera.fundingConfirmed
-                  ? "Your contribution is recorded. Payout accounting starts with the first epoch."
-                  : "No contribution recorded yet, so this account is not active."
-                : "No payout epoch has run. There is no wallet attached to this account."}
+              {vera.walletEarnedSats > 0
+                ? `${sats(vera.walletStarterSats)} starter sats · ${sats(vera.walletEarnedSats)} in report payouts · Signet demo ledger`
+                : `${sats(vera.walletStarterSats)} sats loaded · Ready for demo transfers · No real-world value`}
             </small>
           </div>
         </article>
@@ -90,7 +88,7 @@ export function JournalistProfile() {
         </article>
       </section>
 
-      {isFunder || !vera.canPublish ? null : (
+      {vera.accountType === "funder" || !vera.canPublish ? null : (
         <section className="profile-work">
           <div className="profile-work-heading">
             <div><h2>Your articles</h2></div>
@@ -122,6 +120,12 @@ export function JournalistProfile() {
                         : null}
                     </p>
                   </div>
+                  {tab === "published" ? (
+                    <div className="profile-article-earnings">
+                      <span>Report payout</span>
+                      <strong>{sats(article.earnedSats)} sats</strong>
+                    </div>
+                  ) : null}
                   <ChevronRight aria-hidden="true" />
                 </Link>
               ))}
