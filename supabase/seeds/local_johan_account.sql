@@ -73,6 +73,12 @@ begin
    where j.id = a.journalist_id
      and j.public_alias = 'Northstar' and j.owner_user_id is null;
 
+  -- Open to every member, as the publish dialog allows and as on veras.news, so
+  -- each demo account has a feed rather than only media organisations.
+  update public.articles
+     set visibility = 'members'
+   where journalist_id = johan;
+
   -- The credential belongs to Johan now, not to every seeded byline.
   update public.journalists
      set credential_name = null, credential_carnet = null, credential_section = null

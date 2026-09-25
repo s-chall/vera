@@ -72,6 +72,13 @@ To make one on a hosted project, sign up normally and set `is_admin` with
 These come from `supabase/seed-local-demo.sql` and
 `supabase/seeds/local_johan_account.sql`, both local only.
 
+On **veras.news** the same four accounts exist, but with a different password,
+kept in `VERA_DEMO_PASSWORD` in `/srv/vera/.env` on the server. The one above
+is published in this repository, and on a public site that would let anyone
+sign in and publish as a verified journalist. They were created by
+`supabase/prod/20260925_example_content_and_demo_accounts.sql`, a one-off that
+also replaced the placeholder stories there.
+
 Or create your own at **http://localhost:3000/signup**. Three account types:
 
 - **Journalist** — two steps, then a CNP number and cédula are checked live

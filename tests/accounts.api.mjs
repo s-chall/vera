@@ -188,11 +188,14 @@ const check = (n, c, e) => results.push([c ? 'PASS' : 'FAIL', n, c ? '' : String
             dek: 'No.', body: ['One paragraph.'], read_mins: 1, published_at: new Date().toISOString() } });
   check('a funder cannot publish', funderPost.status >= 400, funderPost.status);
 
-  // Consequence worth pinning: every publisher is now a verified journalist, so
-  // everything is media_only and a funder can never see any article at all.
-  const funderFeed = await api('/rest/v1/articles?select=slug', { token: funder.token });
-  check('a funder sees no articles at all under the current rules',
-    funderFeed.data?.length === 0, 'funder sees ' + funderFeed.data?.length);
+  // The rule, independent of what is seeded: a funder sees exactly the members
+  // articles and none of the media_only ones.
+  const funderFeed = await api('/rest/v1/articles?select=slug,visibility', { token: funder.token });
+  const adminAll = await api('/rest/v1/articles?select=slug,visibility', { token: adminToken });
+  const membersOnly = (adminAll.data || []).filter((a) => a.visibility === 'members').length;
+  check('a funder sees members articles and nothing media_only',
+    funderFeed.data?.length === membersOnly && funderFeed.data.every((a) => a.visibility === 'members'),
+    'funder sees ' + funderFeed.data?.length + ', members articles ' + membersOnly);
 
   // Clean up after ourselves: a published article outlives the run and turns up
   // in the app as a stray story under a generated alias.
